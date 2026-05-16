@@ -1,15 +1,35 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 
-// 1. Definição do tipo Screen
-export type Screen = 'login' | 'cadastro' | 'dashboard' | 'clientes' | 'produtos' | 'servicos' | 'copiaChave' | 'vendaDireta' | 'retirada' | 'retirada'; // Incluído 'cadastro'
+import { login as loginApi } from "../services/authService";
 
-export type UserRole = 'admin' | 'operador';
+// =========================
+// TIPOS
+// =========================
+
+export type Screen =
+  | "login"
+  | "cadastro"
+  | "dashboard"
+  | "clientes"
+  | "produtos"
+  | "servicos"
+  | "copiaChave"
+  | "vendaDireta"
+  | "retirada";
+
+export type UserRole = "admin" | "operador" | "user";
 
 export interface User {
   id: string;
   nome: string;
   email: string;
-  role: UserRole;
+  nivel: UserRole;
 }
 
 export interface Cliente {
@@ -37,7 +57,7 @@ export interface Servico {
   duracaoEstimada: string;
 }
 
-export type StatusOrdem = 'pendente' | 'em_producao' | 'pronto' | 'retirado';
+export type StatusOrdem = "pendente" | "em_producao" | "pronto" | "retirado";
 
 export interface OrdemServico {
   id: string;
@@ -62,295 +82,385 @@ export interface Venda {
   assinatura?: string;
 }
 
+// =========================
+// CONTEXT TYPE
+// =========================
+
 interface AppContextType {
   currentUser: User | null;
-  currentScreen: Screen; // Alterado para o tipo Screen
+
+  currentScreen: Screen;
+
+  isAuthenticated: boolean;
+
+  isAdmin: boolean;
+
+  isOperador: boolean;
+
+  hasPermission: (niveis: UserRole[]) => boolean;
+
   clientes: Cliente[];
+
   produtos: Produto[];
+
   servicos: Servico[];
+
   ordens: OrdemServico[];
+
   vendas: Venda[];
-  login: (email: string, senha: string) => boolean;
-  cadastro: (newUser: Omit<User, 'id' | 'role'>, senha: string) => boolean; // <--- NOVO: Função para Cadastro
+
+  login: (email: string, senha: string) => Promise<boolean>;
+
   logout: () => void;
-  setCurrentScreen: (screen: Screen) => void; // Alterado para o tipo Screen
-  addCliente: (cliente: Omit<Cliente, 'id'>) => void;
+
+  setCurrentScreen: (screen: Screen) => void;
+
+  addCliente: (cliente: Omit<Cliente, "id">) => void;
+
   updateCliente: (id: string, cliente: Partial<Cliente>) => void;
+
   deleteCliente: (id: string) => void;
-  addProduto: (produto: Omit<Produto, 'id'>) => void;
+
+  addProduto: (produto: Omit<Produto, "id">) => void;
+
   updateProduto: (id: string, produto: Partial<Produto>) => void;
+
   deleteProduto: (id: string) => void;
-  addServico: (servico: Omit<Servico, 'id'>) => void;
+
+  addServico: (servico: Omit<Servico, "id">) => void;
+
   updateServico: (id: string, servico: Partial<Servico>) => void;
+
   deleteServico: (id: string) => void;
-  addOrdem: (ordem: Omit<OrdemServico, 'id' | 'dataCriacao' | 'dataAtualizacao'>) => void;
+
+  addOrdem: (
+    ordem: Omit<OrdemServico, "id" | "dataCriacao" | "dataAtualizacao">,
+  ) => void;
+
   updateOrdem: (id: string, ordem: Partial<OrdemServico>) => void;
-  addVenda: (venda: Omit<Venda, 'id' | 'data'>) => void;
+
+  addVenda: (venda: Omit<Venda, "id" | "data">) => void;
+
   getClienteById: (id: string) => Cliente | undefined;
+
   getProdutoById: (id: string) => Produto | undefined;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-// Lista inicial de usuários (será gerenciada por estado)
-const INITIAL_USERS: User[] = [
-  { id: '1', nome: 'Administrador', email: 'admin@chavesalves.com', role: 'admin' },
-  { id: '2', nome: 'Operador', email: 'operador@chavesalves.com', role: 'operador' },
-];
+// =========================
+// PROVIDER
+// =========================
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [mockUsers, setMockUsers] = useState<User[]>(INITIAL_USERS); // Para permitir cadastros
+  // =========================
+  // STATES
+  // =========================
+
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [currentScreen, setCurrentScreen] = useState<Screen>('login'); // Corrigido
-  const [clientes, setClientes] = useState<Cliente[]>([]); // Corrigido para array
-  const [produtos, setProdutos] = useState<Produto[]>([]); // Corrigido para array
-  const [servicos, setServicos] = useState<Servico[]>([]); // Corrigido
-  const [ordens, setOrdens] = useState<OrdemServico[]>([]); // Corrigido para array
-  const [vendas, setVendas] = useState<Venda[]>([]); // Corrigido para array
 
-  // Carregar dados do localStorage
+  const [currentScreen, setCurrentScreen] = useState<Screen>("login");
+
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+
+  const [produtos, setProdutos] = useState<Produto[]>([]);
+
+  const [servicos, setServicos] = useState<Servico[]>([]);
+
+  const [ordens, setOrdens] = useState<OrdemServico[]>([]);
+
+  const [vendas, setVendas] = useState<Venda[]>([]);
+
+  // =========================
+  // AUTH HELPERS
+  // =========================
+
+  const isAuthenticated = !!currentUser;
+
+  const isAdmin = currentUser?.nivel === "admin";
+
+  const isOperador = currentUser?.nivel === "operador";
+
+  const hasPermission = (niveis: UserRole[]) => {
+    if (!currentUser) {
+      return false;
+    }
+
+    return niveis.includes(currentUser.nivel);
+  };
+
+  // =========================
+  // AUTO LOGIN
+  // =========================
+
   useEffect(() => {
-    const savedClientes = localStorage.getItem('clientes');
-    const savedProdutos = localStorage.getItem('produtos');
-    const savedServicos = localStorage.getItem('servicos');
-    const savedOrdens = localStorage.getItem('ordens');
-    const savedVendas = localStorage.getItem('vendas');
-    const savedMockUsers = localStorage.getItem('mockUsers');
+    const savedUser = localStorage.getItem("user");
 
-    if (savedClientes) setClientes(JSON.parse(savedClientes));
-    if (savedProdutos) setProdutos(JSON.parse(savedProdutos));
-    if (savedServicos) setServicos(JSON.parse(savedServicos));
-    if (savedOrdens) setOrdens(JSON.parse(savedOrdens));
-    if (savedVendas) setVendas(JSON.parse(savedVendas));
+    const token = localStorage.getItem("token");
 
-    if (savedMockUsers) {
-      setMockUsers(JSON.parse(savedMockUsers));
-    } else {
-      localStorage.setItem('mockUsers', JSON.stringify(INITIAL_USERS));
-    }
+    if (savedUser && token) {
+      setCurrentUser(JSON.parse(savedUser));
 
-    // Dados de exemplo se não houver dados salvos
-    if (!savedClientes || JSON.parse(savedClientes).length === 0) {
-      const exemploClientes: Cliente[] = [
-        { id: '1', nome: 'João Silva', telefone: '(11) 99999-9999', cpf: '123.456.789-00' },
-        { id: '2', nome: 'Maria Santos', telefone: '(11) 98888-8888', email: 'maria@email.com' },
-        { id: '3', nome: 'Carlos Oliveira', telefone: '(11) 97777-7777', endereco: 'Rua das Flores, 123' },
-      ];
-      setClientes(exemploClientes);
-      localStorage.setItem('clientes', JSON.stringify(exemploClientes));
-    }
-
-    if (!savedProdutos || JSON.parse(savedProdutos).length === 0) {
-      const exemploProdutos: Produto[] = [
-        { 
-          id: '1', 
-          nome: 'Chave de Carro Toyota', 
-          codigo: 'CHV-001', 
-          quantidadeEstoque: 10, 
-          estoqueMinimo: 2 
-        },
-        { 
-          id: '2', 
-          nome: 'Chave de Porta Yale', 
-          codigo: 'CHV-002', 
-          quantidadeEstoque: 15, 
-          estoqueMinimo: 5 
-        },
-      ];
-      setProdutos(exemploProdutos);
-      localStorage.setItem('produtos', JSON.stringify(exemploProdutos));
-    }
-
-    if (!savedServicos || JSON.parse(savedServicos).length === 0) {
-      const exemploServicos: Servico[] = [
-        { 
-          id: '1', 
-          nome: 'Cópia de Chave Simples', 
-          precoBase: 25.00, 
-          duracaoEstimada: '30 minutos' 
-        },
-        { 
-          id: '2', 
-          nome: 'Cópia de Chave Codificada', 
-          precoBase: 150.00, 
-          duracaoEstimada: '2 horas' 
-        },
-      ];
-      setServicos(exemploServicos);
-      localStorage.setItem('servicos', JSON.stringify(exemploServicos));
+      setCurrentScreen("dashboard");
     }
   }, []);
 
-  useEffect(() => {
-    if (clientes.length > 0) localStorage.setItem('clientes', JSON.stringify(clientes));
-  }, [clientes]);
+  // =========================
+  // LOGIN API
+  // =========================
 
-  useEffect(() => {
-    if (produtos.length > 0) localStorage.setItem('produtos', JSON.stringify(produtos));
-  }, [produtos]);
+  const login = async (email: string, senha: string): Promise<boolean> => {
+    try {
+      const data = await loginApi(email, senha);
 
-  useEffect(() => {
-    if (servicos.length > 0) localStorage.setItem('servicos', JSON.stringify(servicos));
-  }, [servicos]);
+      const user: User = {
+        id: String(data.user.id),
 
-  useEffect(() => {
-    localStorage.setItem('ordens', JSON.stringify(ordens));
-  }, [ordens]);
+        nome: data.user.name,
 
-  useEffect(() => {
-    localStorage.setItem('vendas', JSON.stringify(vendas));
-  }, [vendas]);
-  
-  useEffect(() => {
-    localStorage.setItem('mockUsers', JSON.stringify(mockUsers));
-  }, [mockUsers]);
+        email: data.user.email,
 
-  const login = (email: string, senha: string) => {
-    // Usa mockUsers para login
-    const user = mockUsers.find(u => u.email === email);
-    if (user && senha === 'senha123') {
+        nivel: data.user.nivel,
+      };
+
       setCurrentUser(user);
-      setCurrentScreen('dashboard');
+
+      setCurrentScreen("dashboard");
+
       return true;
+    } catch (error) {
+      console.log(error);
+
+      return false;
     }
-    return false;
   };
 
-  // NOVO: Função para cadastro de novos usuários (apenas Operador para o protótipo)
-  const cadastro = (newUser: Omit<User, 'id' | 'role'>, senha: string) => {
-    if (mockUsers.some(u => u.email === newUser.email)) {
-      return false; // Email já existe
-    }
-
-    // Regra: Novo usuário é sempre um Operador (pode ser ajustado pelo Admin depois)
-    const newId = Date.now().toString();
-    const registeredUser: User = {
-      ...newUser,
-      id: newId,
-      role: 'operador' 
-    };
-    
-    setMockUsers(prevUsers => [...prevUsers, registeredUser]);
-
-    // Autentica o usuário automaticamente após o cadastro (para simplificar o fluxo)
-    if (senha === 'senha123') { // Simulação, senhas reais seriam diferentes
-      setCurrentUser(registeredUser);
-      setCurrentScreen('dashboard');
-      return true;
-    }
-
-    // Se a senha for diferente de 'senha123' na simulação (embora não devesse acontecer aqui)
-    return false;
-  };
+  // =========================
+  // LOGOUT
+  // =========================
 
   const logout = () => {
+    localStorage.removeItem("token");
+
+    localStorage.removeItem("user");
+
     setCurrentUser(null);
-    setCurrentScreen('login'); // Redireciona para o login após logout
+
+    setCurrentScreen("login");
   };
 
-  const setCurrentScreenSafe = (screen: string) => {
-    // Wrapper para garantir que o tipo Screen seja usado, embora o parâmetro seja string no TS
-    setCurrentScreen(screen as Screen); 
-  };
+  // =========================
+  // CLIENTES
+  // =========================
 
-  const addCliente = (cliente: Omit<Cliente, 'id'>) => {
-    const newCliente = {...cliente, id: Date.now().toString() };
+  const addCliente = (cliente: Omit<Cliente, "id">) => {
+    const newCliente = {
+      ...cliente,
+      id: Date.now().toString(),
+    };
+
     setClientes([...clientes, newCliente]);
   };
 
   const updateCliente = (id: string, cliente: Partial<Cliente>) => {
-    setClientes(clientes.map(c => c.id === id ? { ...c, ...cliente } : c));
+    setClientes(
+      clientes.map((c) =>
+        c.id === id
+          ? {
+              ...c,
+              ...cliente,
+            }
+          : c,
+      ),
+    );
   };
 
   const deleteCliente = (id: string) => {
-    setClientes(clientes.filter(c => c.id !== id));
+    setClientes(clientes.filter((c) => c.id !== id));
   };
 
-  const addProduto = (produto: Omit<Produto, 'id'>) => {
-    const newProduto = {...produto, id: Date.now().toString() };
+  // =========================
+  // PRODUTOS
+  // =========================
+
+  const addProduto = (produto: Omit<Produto, "id">) => {
+    const newProduto = {
+      ...produto,
+
+      id: Date.now().toString(),
+    };
+
     setProdutos([...produtos, newProduto]);
   };
 
   const updateProduto = (id: string, produto: Partial<Produto>) => {
-    setProdutos(produtos.map(p => p.id === id ? { ...p, ...produto } : p));
+    setProdutos(
+      produtos.map((p) =>
+        p.id === id
+          ? {
+              ...p,
+              ...produto,
+            }
+          : p,
+      ),
+    );
   };
 
   const deleteProduto = (id: string) => {
-    setProdutos(produtos.filter(p => p.id !== id));
+    setProdutos(produtos.filter((p) => p.id !== id));
   };
 
-  const addServico = (servico: Omit<Servico, 'id'>) => {
-    const newServico = {...servico, id: Date.now().toString() };
+  // =========================
+  // SERVIÇOS
+  // =========================
+
+  const addServico = (servico: Omit<Servico, "id">) => {
+    const newServico = {
+      ...servico,
+
+      id: Date.now().toString(),
+    };
+
     setServicos([...servicos, newServico]);
   };
 
   const updateServico = (id: string, servico: Partial<Servico>) => {
-    setServicos(servicos.map(s => s.id === id ? { ...s, ...servico } : s));
+    setServicos(
+      servicos.map((s) =>
+        s.id === id
+          ? {
+              ...s,
+              ...servico,
+            }
+          : s,
+      ),
+    );
   };
 
   const deleteServico = (id: string) => {
-    setServicos(servicos.filter(s => s.id !== id));
+    setServicos(servicos.filter((s) => s.id !== id));
   };
 
-  const addOrdem = (ordem: Omit<OrdemServico, 'id' | 'dataCriacao' | 'dataAtualizacao'>) => {
+  // =========================
+  // ORDENS
+  // =========================
+
+  const addOrdem = (
+    ordem: Omit<OrdemServico, "id" | "dataCriacao" | "dataAtualizacao">,
+  ) => {
     const newOrdem: OrdemServico = {
       ...ordem,
+
       id: Date.now().toString(),
+
       dataCriacao: new Date().toISOString(),
+
       dataAtualizacao: new Date().toISOString(),
     };
-    setOrdens([...ordens, newOrdem]);
 
-    const produto = produtos.find(p => p.id === ordem.produtoId);
-    if (produto && produto.quantidadeEstoque > 0) {
-      updateProduto(produto.id, { quantidadeEstoque: produto.quantidadeEstoque - 1 });
-    }
+    setOrdens([...ordens, newOrdem]);
   };
 
   const updateOrdem = (id: string, ordem: Partial<OrdemServico>) => {
-    const updatedOrdem = {...ordem, dataAtualizacao: new Date().toISOString() };
-    setOrdens(ordens.map(o => o.id === id ? {...o, ...updatedOrdem } : o));
+    setOrdens(
+      ordens.map((o) =>
+        o.id === id
+          ? {
+              ...o,
+              ...ordem,
+
+              dataAtualizacao: new Date().toISOString(),
+            }
+          : o,
+      ),
+    );
   };
 
-  const addVenda = (venda: Omit<Venda, 'id' | 'data'>) => {
+  // =========================
+  // VENDAS
+  // =========================
+
+  const addVenda = (venda: Omit<Venda, "id" | "data">) => {
     const newVenda: Venda = {
       ...venda,
+
       id: Date.now().toString(),
+
       data: new Date().toISOString(),
     };
+
     setVendas([...vendas, newVenda]);
   };
 
-  const getClienteById = (id: string) => clientes.find(c => c.id === id);
-  const getProdutoById = (id: string) => produtos.find(p => p.id === id);
+  // =========================
+  // HELPERS
+  // =========================
+
+  const getClienteById = (id: string) => clientes.find((c) => c.id === id);
+
+  const getProdutoById = (id: string) => produtos.find((p) => p.id === id);
+
+  // =========================
+  // PROVIDER
+  // =========================
 
   return (
     <AppContext.Provider
       value={{
         currentUser,
+
         currentScreen,
+
+        isAuthenticated,
+
+        isAdmin,
+
+        isOperador,
+
+        hasPermission,
+
         clientes,
+
         produtos,
+
         servicos,
+
         ordens,
+
         vendas,
+
         login,
-        cadastro,
+
         logout,
-        setCurrentScreen: setCurrentScreenSafe,
+
+        setCurrentScreen,
+
         addCliente,
+
         updateCliente,
+
         deleteCliente,
+
         addProduto,
+
         updateProduto,
+
         deleteProduto,
+
         addServico,
+
         updateServico,
+
         deleteServico,
+
         addOrdem,
+
         updateOrdem,
+
         addVenda,
+
         getClienteById,
+
         getProdutoById,
       }}
     >
@@ -359,10 +469,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// =========================
+// HOOK
+// =========================
+
 export function useApp() {
   const context = useContext(AppContext);
+
   if (!context) {
-    throw new Error('useApp must be used within AppProvider');
+    throw new Error("useApp must be used within AppProvider");
   }
+
   return context;
 }

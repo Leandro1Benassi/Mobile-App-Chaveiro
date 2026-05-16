@@ -1,28 +1,48 @@
-import { Users, Package, Wrench, ClipboardList, ShoppingCart, LogOut, AlertTriangle, TrendingUp, Image as ImageIcon } from 'lucide-react';
-import { useApp } from '../context/AppContext';
-import { Logo } from './Logo';
+import {
+  Users,
+  Package,
+  Wrench,
+  ClipboardList,
+  ShoppingCart,
+  LogOut,
+  AlertTriangle,
+  TrendingUp,
+  Image as ImageIcon,
+} from "lucide-react";
+import { useApp } from "../context/AppContext";
+import { Logo } from "./Logo";
 
 export function Dashboard() {
-  const { currentUser, logout, setCurrentScreen, ordens, produtos, clientes, vendas } = useApp();
+  const {
+    currentUser,
+    logout,
+    setCurrentScreen,
+    ordens,
+    produtos,
+    clientes,
+    vendas,
+  } = useApp();
 
-  const ordensAbertas = ordens.filter(o => o.status !== 'retirado').length;
-  const ordensProntas = ordens.filter(o => o.status === 'pronto').length;
-  const produtosBaixoEstoque = produtos.filter(p => p.quantidadeEstoque <= p.estoqueMinimo).length;
-  const vendasHoje = vendas.filter(v => {
+  const ordensAbertas = ordens.filter((o) => o.status !== "retirado").length;
+  const ordensProntas = ordens.filter((o) => o.status === "pronto").length;
+  const produtosBaixoEstoque = produtos.filter(
+    (p) => p.quantidadeEstoque <= p.estoqueMinimo,
+  ).length;
+  const vendasHoje = vendas.filter((v) => {
     const hoje = new Date().toDateString();
     const dataVenda = new Date(v.data).toDateString();
     return hoje === dataVenda;
   }).length;
 
   const totalVendasHoje = vendas
-    .filter(v => {
+    .filter((v) => {
       const hoje = new Date().toDateString();
       const dataVenda = new Date(v.data).toDateString();
       return hoje === dataVenda;
     })
     .reduce((sum, v) => sum + v.valor, 0);
 
-  const isAdmin = currentUser?.role === 'admin';
+  const isAdmin = currentUser?.nivel === "admin";
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -33,7 +53,7 @@ export function Dashboard() {
             <Logo />
             <p className="text-blue-100 mt-1">Olá, {currentUser?.nome}</p>
             <span className="inline-block mt-1 px-2 py-1 bg-blue-700 rounded text-blue-100">
-              {currentUser?.role === 'admin' ? 'Administrador' : 'Operador'}
+              {currentUser?.nivel === "admin" ? "Administrador" : "Operador"}
             </span>
           </div>
           <button
@@ -52,7 +72,8 @@ export function Dashboard() {
             <AlertTriangle className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
             <div>
               <p className="text-orange-800">
-                <strong>Atenção!</strong> {produtosBaixoEstoque} produto(s) com estoque baixo
+                <strong>Atenção!</strong> {produtosBaixoEstoque} produto(s) com
+                estoque baixo
               </p>
             </div>
           </div>
@@ -63,7 +84,8 @@ export function Dashboard() {
             <TrendingUp className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
             <div>
               <p className="text-green-800">
-                <strong>{ordensProntas}</strong> pedido(s) pronto(s) para retirada
+                <strong>{ordensProntas}</strong> pedido(s) pronto(s) para
+                retirada
               </p>
             </div>
           </div>
@@ -85,9 +107,7 @@ export function Dashboard() {
           </div>
           <div className="bg-white rounded-lg p-4 shadow">
             <p className="text-gray-600 mb-1">Faturamento Hoje</p>
-            <p className="text-green-600">
-              R$ {totalVendasHoje.toFixed(2)}
-            </p>
+            <p className="text-green-600">R$ {totalVendasHoje.toFixed(2)}</p>
           </div>
         </div>
 
@@ -98,7 +118,7 @@ export function Dashboard() {
               <h2 className="text-gray-700">🔑 Nossos Produtos</h2>
               {isAdmin && (
                 <button
-                  onClick={() => setCurrentScreen('produtos')}
+                  onClick={() => setCurrentScreen("produtos")}
                   className="text-orange-600 hover:text-orange-700"
                 >
                   Ver todos
@@ -124,18 +144,24 @@ export function Dashboard() {
                       </div>
                     )}
                     <div className="absolute top-1 right-1">
-                      <span className={`px-2 py-0.5 rounded-full text-white text-xs shadow-lg ${
-                        produto.quantidadeEstoque <= produto.estoqueMinimo
-                          ? 'bg-red-500'
-                          : 'bg-green-500'
-                      }`}>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-white text-xs shadow-lg ${
+                          produto.quantidadeEstoque <= produto.estoqueMinimo
+                            ? "bg-red-500"
+                            : "bg-green-500"
+                        }`}
+                      >
                         {produto.quantidadeEstoque}
                       </span>
                     </div>
                   </div>
                   <div className="p-2">
-                    <p className="text-gray-800 text-xs truncate">{produto.nome}</p>
-                    <p className="text-gray-500 text-xs mt-0.5">{produto.codigo}</p>
+                    <p className="text-gray-800 text-xs truncate">
+                      {produto.nome}
+                    </p>
+                    <p className="text-gray-500 text-xs mt-0.5">
+                      {produto.codigo}
+                    </p>
                   </div>
                 </div>
               ))}
@@ -148,7 +174,7 @@ export function Dashboard() {
           <h2 className="text-gray-700 mb-3">Menu Principal</h2>
 
           <button
-            onClick={() => setCurrentScreen('copiaChave')}
+            onClick={() => setCurrentScreen("copiaChave")}
             className="w-full bg-white rounded-lg p-4 shadow hover:shadow-md transition-shadow flex items-center gap-4"
           >
             <div className="bg-blue-100 p-3 rounded-lg">
@@ -161,7 +187,7 @@ export function Dashboard() {
           </button>
 
           <button
-            onClick={() => setCurrentScreen('vendaDireta')}
+            onClick={() => setCurrentScreen("vendaDireta")}
             className="w-full bg-white rounded-lg p-4 shadow hover:shadow-md transition-shadow flex items-center gap-4"
           >
             <div className="bg-green-100 p-3 rounded-lg">
@@ -178,7 +204,7 @@ export function Dashboard() {
               <h2 className="text-gray-700 mb-3 mt-6">Cadastros (Admin)</h2>
 
               <button
-                onClick={() => setCurrentScreen('clientes')}
+                onClick={() => setCurrentScreen("clientes")}
                 className="w-full bg-white rounded-lg p-4 shadow hover:shadow-md transition-shadow flex items-center gap-4"
               >
                 <div className="bg-purple-100 p-3 rounded-lg">
@@ -186,12 +212,14 @@ export function Dashboard() {
                 </div>
                 <div className="flex-1 text-left">
                   <p className="text-gray-800">Clientes</p>
-                  <p className="text-gray-500">Gerenciar cadastro de clientes</p>
+                  <p className="text-gray-500">
+                    Gerenciar cadastro de clientes
+                  </p>
                 </div>
               </button>
 
               <button
-                onClick={() => setCurrentScreen('produtos')}
+                onClick={() => setCurrentScreen("produtos")}
                 className="w-full bg-white rounded-lg p-4 shadow hover:shadow-md transition-shadow flex items-center gap-4"
               >
                 <div className="bg-orange-100 p-3 rounded-lg">
@@ -204,7 +232,7 @@ export function Dashboard() {
               </button>
 
               <button
-                onClick={() => setCurrentScreen('servicos')}
+                onClick={() => setCurrentScreen("servicos")}
                 className="w-full bg-white rounded-lg p-4 shadow hover:shadow-md transition-shadow flex items-center gap-4"
               >
                 <div className="bg-indigo-100 p-3 rounded-lg">

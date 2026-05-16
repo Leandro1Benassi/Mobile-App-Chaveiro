@@ -1,73 +1,187 @@
-import { useState } from 'react';
-import { ArrowLeft, Plus, Edit2, Trash2, Search } from 'lucide-react';
-import { useApp } from '../context/AppContext';
+import { useEffect, useState } from "react";
+import { ArrowLeft, Plus, Edit2, Trash2, Search } from "lucide-react";
+import { useApp } from "../context/AppContext";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+import {
+  listarClientes,
+  criarCliente,
+  atualizarCliente,
+  deletarCliente,
+} from "../services/clientesService";
+
+type Cliente = {
+  id: string;
+  nome: string;
+  telefone: string;
+  cpf?: string;
+  email?: string;
+  cep?: string;
+};
 
 export function CadastroClientes() {
-  const { setCurrentScreen, clientes, addCliente, updateCliente, deleteCliente } = useApp();
+  const { setCurrentScreen } = useApp();
+
+  const [clientes, setClientes] = useState<Cliente[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
+
   const [formData, setFormData] = useState({
-    nome: '',
-    telefone: '',
-    cpf: '',
-    email: '',
-    endereco: '',
+    nome: "",
+    telefone: "",
+    cpf: "",
+    email: "",
+    cep: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (editingId) {
-      updateCliente(editingId, formData);
-    } else {
-      addCliente(formData);
+  //  Buscar clientes da API
+  const fetchClientes = async () => {
+    try {
+      const res = await listarClientes();
+      console.log("clientes", res);
+      // ajustar formato da API
+      const clientesFormatados = res.data.map((c: any) => ({
+        id: String(c.id),
+        nome: c.name,
+        telefone: c.tel,
+        email: c.email,
+        cpf: c.cpf,
+        cep: c.cep || "",
+      }));
+
+      setClientes(clientesFormatados);
+    } catch (error) {
+      console.error("Erro ao buscar clientes:", error);
+      toast.error("Erro ao carregar clientes");
     }
-    resetForm();
+  };
+
+  useEffect(() => {
+    fetchClientes();
+  }, []);
+
+  // Criar ou atualizar
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      if (editingId) {
+        await atualizarCliente(editingId, {
+          name: formData.nome,
+          tel: formData.telefone,
+          cpf: formData.cpf,
+          email: formData.email,
+          cep: formData.cep,
+        });
+
+        toast.success("Cliente atualizado com sucesso!");
+      } else {
+        await criarCliente({
+          name: formData.nome,
+          tel: formData.telefone,
+          cpf: formData.cpf,
+          email: formData.email,
+          cep: formData.cep,
+        });
+
+        toast.success("Cliente cadastrado com sucesso!");
+      }
+
+      await fetchClientes();
+      resetForm();
+    } catch (error) {
+      console.error("Erro ao salvar cliente:", error);
+      toast.error("Erro ao salvar cliente");
+    }
   };
 
   const resetForm = () => {
-    setFormData({ nome: '', telefone: '', cpf: '', email: '', endereco: '' });
-    setShowForm(false);
+    setFormData({
+      nome: "",
+      telefone: "",
+      cpf: "",
+      email: "",
+      cep: "",
+    });
     setEditingId(null);
+    setShowForm(false);
   };
 
+  // Editar
   const handleEdit = (id: string) => {
-    const cliente = clientes.find(c => c.id === id);
+    const cliente = clientes.find((c) => c.id === id);
+
     if (cliente) {
       setFormData({
         nome: cliente.nome,
         telefone: cliente.telefone,
-        cpf: cliente.cpf || '',
-        email: cliente.email || '',
-        endereco: cliente.endereco || '',
+        cpf: cliente.cpf || "",
+        email: cliente.email || "",
+        cep: cliente.cep || "",
       });
+
       setEditingId(id);
       setShowForm(true);
     }
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('Tem certeza que deseja excluir este cliente?')) {
-      deleteCliente(id);
-    }
-  };
+  // Deletar
+  const handleDelete = async (id: string) => {
+    toast(({ closeToast }) => (
+      <div>
+        <p>Deseja excluir este cliente?</p>
 
-  const filteredClientes = clientes.filter(c =>
-    c.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.telefone.includes(searchTerm)
+        <div
+          style={{
+            display: "flex",
+            gap: 10,
+            marginTop: 10,
+            justifyContent: "center",
+          }}
+        >
+          <button
+            onClick={async () => {
+              await deletarCliente(id);
+              fetchClientes();
+              toast.success("Cliente excluído!");
+              closeToast();
+            }}
+          >
+            Sim
+          </button>
+
+          <button onClick={closeToast}>Cancelar</button>
+        </div>
+      </div>
+    ));
+  };
+  // Filtro
+  const filteredClientes = clientes.filter(
+    (c) =>
+      c.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.telefone.includes(searchTerm),
   );
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/*  TOAST (OBRIGATÓRIO) */}
+      <ToastContainer position="top-right" autoClose={3000} />
       {/* Header */}
       <div className="bg-purple-600 text-white p-4 shadow-lg">
         <div className="flex items-center gap-4">
-          <button onClick={() => setCurrentScreen('dashboard')} className="p-2 hover:bg-purple-700 rounded-lg">
+          <button
+            onClick={() => setCurrentScreen("dashboard")}
+            className="p-2 hover:bg-purple-700 rounded-lg"
+          >
             <ArrowLeft className="w-6 h-6" />
           </button>
           <div className="flex-1">
             <h1>Clientes</h1>
-            <p className="text-purple-100 mt-1">{clientes.length} cadastrado(s)</p>
+            <p className="text-purple-100 mt-1">
+              {clientes.length} cadastrado(s)
+            </p>
           </div>
           {!showForm && (
             <button
@@ -85,26 +199,34 @@ export function CadastroClientes() {
         {showForm && (
           <div className="bg-white rounded-lg p-4 shadow mb-4">
             <h2 className="text-gray-800 mb-4">
-              {editingId ? 'Editar Cliente' : 'Novo Cliente'}
+              {editingId ? "Editar Cliente" : "Novo Cliente"}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-gray-700 mb-2">Nome Completo *</label>
+                <label className="block text-gray-700 mb-2">
+                  Nome Completo *
+                </label>
                 <input
                   type="text"
                   value={formData.nome}
-                  onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, nome: e.target.value })
+                  }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-gray-700 mb-2">Telefone (WhatsApp) *</label>
+                <label className="block text-gray-700 mb-2">
+                  Telefone (WhatsApp) *
+                </label>
                 <input
                   type="tel"
                   value={formData.telefone}
-                  onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, telefone: e.target.value })
+                  }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                   placeholder="(11) 98765-4321"
                   required
@@ -116,7 +238,9 @@ export function CadastroClientes() {
                 <input
                   type="text"
                   value={formData.cpf}
-                  onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, cpf: e.target.value })
+                  }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                   placeholder="000.000.000-00"
                 />
@@ -127,7 +251,9 @@ export function CadastroClientes() {
                 <input
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                   placeholder="cliente@email.com"
                 />
@@ -136,8 +262,10 @@ export function CadastroClientes() {
               <div>
                 <label className="block text-gray-700 mb-2">Endereço</label>
                 <textarea
-                  value={formData.endereco}
-                  onChange={(e) => setFormData({ ...formData, endereco: e.target.value })}
+                  value={formData.cep}
+                  onChange={(e) =>
+                    setFormData({ ...formData, cep: e.target.value })
+                  }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                   rows={2}
                 />
@@ -148,7 +276,7 @@ export function CadastroClientes() {
                   type="submit"
                   className="flex-1 bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700"
                 >
-                  {editingId ? 'Atualizar' : 'Cadastrar'}
+                  {editingId ? "Atualizar" : "Cadastrar"}
                 </button>
                 <button
                   type="button"
@@ -183,11 +311,16 @@ export function CadastroClientes() {
           <div className="space-y-3">
             {filteredClientes.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
-                {searchTerm ? 'Nenhum cliente encontrado' : 'Nenhum cliente cadastrado'}
+                {searchTerm
+                  ? "Nenhum cliente encontrado"
+                  : "Nenhum cliente cadastrado"}
               </div>
             ) : (
               filteredClientes.map((cliente) => (
-                <div key={cliente.id} className="bg-white rounded-lg p-4 shadow">
+                <div
+                  key={cliente.id}
+                  className="bg-white rounded-lg p-4 shadow"
+                >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
                       <p className="text-gray-800">{cliente.nome}</p>

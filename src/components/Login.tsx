@@ -1,23 +1,31 @@
-import { useState } from 'react';
-import { KeyRound } from 'lucide-react';
-import { useApp } from '../context/AppContext';
-import { Logo } from './Logo';
+import { useState } from "react";
+import { KeyRound } from "lucide-react";
+import { useApp } from "../context/AppContext";
+import { Logo } from "./Logo";
 
 export function Login() {
   // 1. IMPORTAÇÃO: Destruturar setCurrentScreen do contexto
   const { login, setCurrentScreen } = useApp();
-  const [email, setEmail] = useState('');
-  const [senha, setSenha] = useState(''); // CORRIGIDO: Adicionado nome da variável
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState(""); // CORRIGIDO: Adicionado nome da variável
+  const [error, setError] = useState("");
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
 
-    if (login(email, senha)) {
-      // Login bem-sucedido (o AppContext já muda a tela para 'dashboard')
-    } else {
-      setError('Email ou senha incorretos');
+    setError("");
+
+    try {
+      const data = await login(email, senha);
+
+      console.log(data);
+
+      // muda para dashboard
+      setCurrentScreen("dashboard");
+    } catch (error) {
+      setError("Email ou senha incorretos");
+
+      console.log(error);
     }
   };
 
@@ -27,7 +35,9 @@ export function Login() {
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="flex flex-col items-center mb-8">
             <Logo size="large" variant="dark" />
-            <p className="text-gray-600 text-center mt-4">Sistema de Gestão de Chaveiro</p>
+            <p className="text-gray-600 text-center mt-4">
+              Sistema de Gestão de Chaveiro
+            </p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
@@ -74,14 +84,14 @@ export function Login() {
               Entrar
             </button>
           </form>
-          
+
           {/* 2. NOVO LINK PARA CADASTRO */}
           <div className="mt-4 text-center">
             <a
               href="#"
               onClick={(e) => {
                 e.preventDefault();
-                setCurrentScreen('cadastro'); // Mudar o estado global para 'cadastro'
+                setCurrentScreen("cadastro"); // Mudar o estado global para 'cadastro'
               }}
               className="text-sm text-blue-600 hover:text-blue-800 hover:underline cursor-pointer font-medium"
             >
@@ -91,10 +101,18 @@ export function Login() {
           {/* FIM NOVO LINK */}
 
           <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-            <p className="text-gray-600 text-center mb-2">Credenciais de teste:</p>
-            <p className="text-gray-700 text-center"><strong>Admin:</strong> admin@chavesalves.com</p>
-            <p className="text-gray-700 text-center"><strong>Operador:</strong> operador@chavesalves.com</p>
-            <p className="text-gray-700 text-center mt-2"><strong>Senha:</strong> senha123</p>
+            <p className="text-gray-600 text-center mb-2">
+              Credenciais de teste:
+            </p>
+            <p className="text-gray-700 text-center">
+              <strong>Admin:</strong> admin@chavesalves.com
+            </p>
+            <p className="text-gray-700 text-center">
+              <strong>Operador:</strong> operador@chavesalves.com
+            </p>
+            <p className="text-gray-700 text-center mt-2">
+              <strong>Senha:</strong> senha123
+            </p>
           </div>
         </div>
       </div>
