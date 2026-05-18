@@ -19,3 +19,10 @@ export const atualizarCliente = async (id, data) => {
 export const deletarCliente = async (id) => {
   await api.delete(`/clientes/${id}`);
 };
+
+export default {
+  listarClientes,
+  criarCliente,
+  atualizarCliente,
+  deletarCliente,
+};

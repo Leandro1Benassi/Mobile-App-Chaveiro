@@ -7,7 +7,9 @@ import {
 } from "react";
 
 import { login as loginApi } from "../services/authService";
-
+import clienteService from "../services/clientesService";
+import servicosService from "../services/servicosService";
+import produtosService from "../services/produtoService";
 // =========================
 // TIPOS
 // =========================
@@ -34,8 +36,8 @@ export interface User {
 
 export interface Cliente {
   id: string;
-  nome: string;
-  telefone: string;
+  name: string;
+  tel: string;
   cpf?: string;
   email?: string;
   endereco?: string;
@@ -45,15 +47,15 @@ export interface Produto {
   id: string;
   nome: string;
   codigo: string;
-  quantidadeEstoque: number;
-  estoqueMinimo: number;
-  imagemUrl?: string;
+  estoque: number;
+  estoque_min: number;
+  logo_url?: string;
 }
 
 export interface Servico {
   id: string;
   nome: string;
-  precoBase: number;
+  valor: number;
   duracaoEstimada: string;
 }
 
@@ -205,6 +207,49 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  useEffect(() => {
+    async function carregarClientes() {
+      try {
+        const data = await clienteService.listarClientes();
+        console.log("teste", data.data);
+        setClientes(data.data);
+      } catch (error) {
+        console.log("Erro ao carregar clientes", error);
+      }
+    }
+
+    carregarClientes();
+  }, []);
+
+  useEffect(() => {
+    async function carregarServicos() {
+      try {
+        const data = await servicosService.listarServicos();
+        console.log("servicos", data.data);
+        setServicos(data.data);
+      } catch (error) {
+        console.log("Erro ao carregar serviços", error);
+      }
+    }
+
+    carregarServicos();
+  }, []);
+
+  useEffect(() => {
+    async function carregarProdutos() {
+      try {
+        const data = await produtosService.listarProdutos();
+
+        console.log("produtos", data.data);
+
+        setProdutos(data.data);
+      } catch (error) {
+        console.log("Erro ao carregar produtos", error);
+      }
+    }
+
+    carregarProdutos();
+  }, []);
   // =========================
   // LOGIN API
   // =========================
@@ -283,62 +328,77 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // PRODUTOS
   // =========================
 
-  const addProduto = (produto: Omit<Produto, "id">) => {
-    const newProduto = {
-      ...produto,
+  // =========================
+  // PRODUTOS
+  // =========================
 
-      id: Date.now().toString(),
-    };
+  const addProduto = async (produto: Omit<Produto, "id">) => {
+    try {
+      await produtosService.criarProduto(produto);
 
-    setProdutos([...produtos, newProduto]);
+      const data = await produtosService.listarProdutos();
+
+      setProdutos(data.data);
+    } catch (error) {
+      console.log("Erro ao criar produto", error);
+    }
   };
 
-  const updateProduto = (id: string, produto: Partial<Produto>) => {
-    setProdutos(
-      produtos.map((p) =>
-        p.id === id
-          ? {
-              ...p,
-              ...produto,
-            }
-          : p,
-      ),
-    );
+  const updateProduto = async (id: string, produto: Partial<Produto>) => {
+    try {
+      await produtosService.atualizarProduto(id, produto);
+
+      const data = await produtosService.listarProdutos();
+
+      setProdutos(data.data);
+    } catch (error) {
+      console.log("Erro ao atualizar produto", error);
+    }
   };
 
-  const deleteProduto = (id: string) => {
-    setProdutos(produtos.filter((p) => p.id !== id));
+  const deleteProduto = async (id: string) => {
+    try {
+      await produtosService.deletarProduto(id);
+
+      setProdutos((prev) => prev.filter((p) => p.id !== id));
+    } catch (error) {
+      console.log("Erro ao deletar produto", error);
+    }
   };
 
   // =========================
   // SERVIÇOS
   // =========================
+  const addServico = async (servico: Omit<Servico, "id">) => {
+    try {
+      const data = await servicosService.criarServicos(servico);
 
-  const addServico = (servico: Omit<Servico, "id">) => {
-    const newServico = {
-      ...servico,
+      console.log("CREATE", data);
 
-      id: Date.now().toString(),
-    };
-
-    setServicos([...servicos, newServico]);
+      setServicos((prev) => [...prev, data.data]);
+    } catch (error) {
+      console.log("Erro ao criar serviço", error);
+    }
   };
 
-  const updateServico = (id: string, servico: Partial<Servico>) => {
-    setServicos(
-      servicos.map((s) =>
-        s.id === id
-          ? {
-              ...s,
-              ...servico,
-            }
-          : s,
-      ),
-    );
+  const updateServico = async (id: string, servico: Partial<Servico>) => {
+    try {
+      const data = await servicosService.atualizarServicos(id, servico);
+
+      setServicos((prev) => prev.map((s) => (s.id === id ? data.data : s)));
+    } catch (error) {
+      console.log("Erro ao atualizar serviço", error);
+    }
   };
 
-  const deleteServico = (id: string) => {
-    setServicos(servicos.filter((s) => s.id !== id));
+  const deleteServico = async (id: string) => {
+    try {
+      await servicosService.deletarServicos(id);
+
+      setServicos((prev) => prev.filter((s) => s.id !== id));
+    } catch (error) {
+      console.log("Erro ao deletar serviço", error);
+    }
   };
 
   // =========================

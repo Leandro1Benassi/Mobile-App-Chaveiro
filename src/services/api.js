@@ -1,10 +1,16 @@
 import axios from "axios";
 
+// BASE DA API
+export const API_BASE_URL = "https://api.bennaweb.com";
+
+// BASE DAS IMAGENS (UPLOADS)
+export const UPLOADS_URL = `${API_BASE_URL}/uploads`;
+
 const api = axios.create({
-  baseURL: "https://api.bennaweb.com/",
+  baseURL: API_BASE_URL,
 });
 
-// envia token automaticamente
+// interceptor de token
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
 

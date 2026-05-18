@@ -99,21 +99,6 @@ export function Login() {
             </a>
           </div>
           {/* FIM NOVO LINK */}
-
-          <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-            <p className="text-gray-600 text-center mb-2">
-              Credenciais de teste:
-            </p>
-            <p className="text-gray-700 text-center">
-              <strong>Admin:</strong> admin@chavesalves.com
-            </p>
-            <p className="text-gray-700 text-center">
-              <strong>Operador:</strong> operador@chavesalves.com
-            </p>
-            <p className="text-gray-700 text-center mt-2">
-              <strong>Senha:</strong> senha123
-            </p>
-          </div>
         </div>
       </div>
     </div>

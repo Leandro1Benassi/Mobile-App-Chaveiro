@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { Logo } from "./Logo";
+import produtosService from "../services/produtoService";
 
 export function Dashboard() {
   const {
