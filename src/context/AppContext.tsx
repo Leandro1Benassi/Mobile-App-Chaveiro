@@ -1,43 +1,81 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
 
-// 1. Definição do tipo Screen
-export type Screen = 'login' | 'cadastro' | 'dashboard' | 'clientes' | 'produtos' | 'servicos' | 'copiaChave' | 'vendaDireta' | 'retirada' | 'retirada'; // Incluído 'cadastro'
+import { login as loginApi } from "../services/authService";
+import clienteService from "../services/clientesService";
+import servicosService from "../services/servicosService";
+import produtosService from "../services/produtoService";
 
-export type UserRole = 'admin' | 'operador';
+export type Screen =
+  | "login"
+  | "cadastro"
+  | "dashboard"
+  | "clientes"
+  | "produtos"
+  | "servicos"
+  | "copiaChave"
+  | "vendaDireta"
+  | "retirada"
+  | "perfil"
+  | "configuracoes";
+
+export type UserRole = "admin" | "operador" | "user";
 
 export interface User {
   id: string;
   nome: string;
   email: string;
-  role: UserRole;
+  nivel: UserRole;
+  role?: UserRole;
+  documento?: string;
+  telefone?: string;
+  cep?: string;
+  endereco?: string;
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
+  cidade?: string;
+  estado?: string;
 }
 
 export interface Cliente {
   id: string;
-  nome: string;
-  telefone: string;
+  name?: string;
+  nome?: string;
+  tel?: string;
+  telefone?: string;
   cpf?: string;
   email?: string;
   endereco?: string;
+  cep?: string;
 }
 
 export interface Produto {
   id: string;
   nome: string;
   codigo: string;
-  quantidadeEstoque: number;
-  estoqueMinimo: number;
+  estoque?: number;
+  estoque_min?: number;
+  quantidadeEstoque?: number;
+  estoqueMinimo?: number;
+  logo_url?: string;
   imagemUrl?: string;
 }
 
 export interface Servico {
   id: string;
   nome: string;
-  precoBase: number;
+  valor?: number;
+  precoBase?: number;
   duracaoEstimada: string;
 }
 
-export type StatusOrdem = 'pendente' | 'em_producao' | 'pronto' | 'retirado';
+export type StatusOrdem = "pendente" | "em_producao" | "pronto" | "retirado";
 
 export interface OrdemServico {
   id: string;
@@ -64,271 +102,325 @@ export interface Venda {
 
 interface AppContextType {
   currentUser: User | null;
-  currentScreen: Screen; // Alterado para o tipo Screen
+  currentScreen: Screen;
+  isAuthenticated: boolean;
+  isAdmin: boolean;
+  isOperador: boolean;
+  hasPermission: (niveis: UserRole[]) => boolean;
   clientes: Cliente[];
   produtos: Produto[];
   servicos: Servico[];
   ordens: OrdemServico[];
   vendas: Venda[];
-  login: (email: string, senha: string) => boolean;
-  cadastro: (newUser: Omit<User, 'id' | 'role'>, senha: string) => boolean; // <--- NOVO: Função para Cadastro
+  login: (email: string, senha: string) => Promise<boolean>;
+  cadastro: (newUser: Omit<User, "id" | "nivel" | "role">, senha: string) => boolean;
+  updateCurrentUser: (user: Partial<User>) => void;
   logout: () => void;
-  setCurrentScreen: (screen: Screen) => void; // Alterado para o tipo Screen
-  addCliente: (cliente: Omit<Cliente, 'id'>) => void;
+  setCurrentScreen: (screen: Screen) => void;
+  addCliente: (cliente: Omit<Cliente, "id">) => void;
   updateCliente: (id: string, cliente: Partial<Cliente>) => void;
   deleteCliente: (id: string) => void;
-  addProduto: (produto: Omit<Produto, 'id'>) => void;
+  addProduto: (produto: Omit<Produto, "id">) => void;
   updateProduto: (id: string, produto: Partial<Produto>) => void;
   deleteProduto: (id: string) => void;
-  addServico: (servico: Omit<Servico, 'id'>) => void;
+  addServico: (servico: Omit<Servico, "id">) => void;
   updateServico: (id: string, servico: Partial<Servico>) => void;
   deleteServico: (id: string) => void;
-  addOrdem: (ordem: Omit<OrdemServico, 'id' | 'dataCriacao' | 'dataAtualizacao'>) => void;
+  addOrdem: (
+    ordem: Omit<OrdemServico, "id" | "dataCriacao" | "dataAtualizacao">,
+  ) => void;
   updateOrdem: (id: string, ordem: Partial<OrdemServico>) => void;
-  addVenda: (venda: Omit<Venda, 'id' | 'data'>) => void;
+  addVenda: (venda: Omit<Venda, "id" | "data">) => void;
   getClienteById: (id: string) => Cliente | undefined;
   getProdutoById: (id: string) => Produto | undefined;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-// Lista inicial de usuários (será gerenciada por estado)
-const INITIAL_USERS: User[] = [
-  { id: '1', nome: 'Administrador', email: 'admin@chavesalves.com', role: 'admin' },
-  { id: '2', nome: 'Operador', email: 'operador@chavesalves.com', role: 'operador' },
-];
+const normalizeRole = (role?: string): UserRole => {
+  if (role === "admin" || role === "operador" || role === "user") {
+    return role;
+  }
+
+  return "operador";
+};
+
+const normalizeUser = (data: any): User => {
+  const nivel = normalizeRole(data?.nivel || data?.role);
+
+  return {
+    id: String(data?.id || Date.now()),
+    nome: data?.nome || data?.name || "",
+    email: data?.email || "",
+    nivel,
+    role: nivel,
+    documento: data?.documento || data?.cpf || data?.cnpj || "",
+    telefone: data?.telefone || data?.tel || "",
+    cep: data?.cep || "",
+    endereco: data?.endereco || "",
+    numero: data?.numero || "",
+    complemento: data?.complemento || "",
+    bairro: data?.bairro || "",
+    cidade: data?.cidade || "",
+    estado: data?.estado || data?.uf || "",
+  };
+};
+
+const normalizeProduto = (produto: Produto): Produto => ({
+  ...produto,
+  quantidadeEstoque: produto.quantidadeEstoque ?? produto.estoque ?? 0,
+  estoqueMinimo: produto.estoqueMinimo ?? produto.estoque_min ?? 0,
+  imagemUrl: produto.imagemUrl ?? produto.logo_url,
+});
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [mockUsers, setMockUsers] = useState<User[]>(INITIAL_USERS); // Para permitir cadastros
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [currentScreen, setCurrentScreen] = useState<Screen>('login'); // Corrigido
-  const [clientes, setClientes] = useState<Cliente[]>([]); // Corrigido para array
-  const [produtos, setProdutos] = useState<Produto[]>([]); // Corrigido para array
-  const [servicos, setServicos] = useState<Servico[]>([]); // Corrigido
-  const [ordens, setOrdens] = useState<OrdemServico[]>([]); // Corrigido para array
-  const [vendas, setVendas] = useState<Venda[]>([]); // Corrigido para array
+  const [currentScreen, setCurrentScreen] = useState<Screen>("login");
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [produtos, setProdutos] = useState<Produto[]>([]);
+  const [servicos, setServicos] = useState<Servico[]>([]);
+  const [ordens, setOrdens] = useState<OrdemServico[]>([]);
+  const [vendas, setVendas] = useState<Venda[]>([]);
 
-  // Carregar dados do localStorage
+  const isAuthenticated = !!currentUser;
+  const isAdmin = currentUser?.nivel === "admin";
+  const isOperador = currentUser?.nivel === "operador";
+
+  const hasPermission = (niveis: UserRole[]) => {
+    if (!currentUser) return false;
+    return niveis.includes(currentUser.nivel);
+  };
+
   useEffect(() => {
-    const savedClientes = localStorage.getItem('clientes');
-    const savedProdutos = localStorage.getItem('produtos');
-    const savedServicos = localStorage.getItem('servicos');
-    const savedOrdens = localStorage.getItem('ordens');
-    const savedVendas = localStorage.getItem('vendas');
-    const savedMockUsers = localStorage.getItem('mockUsers');
+    const savedUser = localStorage.getItem("user");
+    const token = localStorage.getItem("token");
 
-    if (savedClientes) setClientes(JSON.parse(savedClientes));
-    if (savedProdutos) setProdutos(JSON.parse(savedProdutos));
-    if (savedServicos) setServicos(JSON.parse(savedServicos));
-    if (savedOrdens) setOrdens(JSON.parse(savedOrdens));
-    if (savedVendas) setVendas(JSON.parse(savedVendas));
-
-    if (savedMockUsers) {
-      setMockUsers(JSON.parse(savedMockUsers));
-    } else {
-      localStorage.setItem('mockUsers', JSON.stringify(INITIAL_USERS));
-    }
-
-    // Dados de exemplo se não houver dados salvos
-    if (!savedClientes || JSON.parse(savedClientes).length === 0) {
-      const exemploClientes: Cliente[] = [
-        { id: '1', nome: 'João Silva', telefone: '(11) 99999-9999', cpf: '123.456.789-00' },
-        { id: '2', nome: 'Maria Santos', telefone: '(11) 98888-8888', email: 'maria@email.com' },
-        { id: '3', nome: 'Carlos Oliveira', telefone: '(11) 97777-7777', endereco: 'Rua das Flores, 123' },
-      ];
-      setClientes(exemploClientes);
-      localStorage.setItem('clientes', JSON.stringify(exemploClientes));
-    }
-
-    if (!savedProdutos || JSON.parse(savedProdutos).length === 0) {
-      const exemploProdutos: Produto[] = [
-        { 
-          id: '1', 
-          nome: 'Chave de Carro Toyota', 
-          codigo: 'CHV-001', 
-          quantidadeEstoque: 10, 
-          estoqueMinimo: 2 
-        },
-        { 
-          id: '2', 
-          nome: 'Chave de Porta Yale', 
-          codigo: 'CHV-002', 
-          quantidadeEstoque: 15, 
-          estoqueMinimo: 5 
-        },
-      ];
-      setProdutos(exemploProdutos);
-      localStorage.setItem('produtos', JSON.stringify(exemploProdutos));
-    }
-
-    if (!savedServicos || JSON.parse(savedServicos).length === 0) {
-      const exemploServicos: Servico[] = [
-        { 
-          id: '1', 
-          nome: 'Cópia de Chave Simples', 
-          precoBase: 25.00, 
-          duracaoEstimada: '30 minutos' 
-        },
-        { 
-          id: '2', 
-          nome: 'Cópia de Chave Codificada', 
-          precoBase: 150.00, 
-          duracaoEstimada: '2 horas' 
-        },
-      ];
-      setServicos(exemploServicos);
-      localStorage.setItem('servicos', JSON.stringify(exemploServicos));
+    if (savedUser && token) {
+      setCurrentUser(normalizeUser(JSON.parse(savedUser)));
+      setCurrentScreen("dashboard");
     }
   }, []);
 
   useEffect(() => {
-    if (clientes.length > 0) localStorage.setItem('clientes', JSON.stringify(clientes));
-  }, [clientes]);
-
-  useEffect(() => {
-    if (produtos.length > 0) localStorage.setItem('produtos', JSON.stringify(produtos));
-  }, [produtos]);
-
-  useEffect(() => {
-    if (servicos.length > 0) localStorage.setItem('servicos', JSON.stringify(servicos));
-  }, [servicos]);
-
-  useEffect(() => {
-    localStorage.setItem('ordens', JSON.stringify(ordens));
-  }, [ordens]);
-
-  useEffect(() => {
-    localStorage.setItem('vendas', JSON.stringify(vendas));
-  }, [vendas]);
-  
-  useEffect(() => {
-    localStorage.setItem('mockUsers', JSON.stringify(mockUsers));
-  }, [mockUsers]);
-
-  const login = (email: string, senha: string) => {
-    // Usa mockUsers para login
-    const user = mockUsers.find(u => u.email === email);
-    if (user && senha === 'senha123') {
-      setCurrentUser(user);
-      setCurrentScreen('dashboard');
-      return true;
+    async function carregarClientes() {
+      try {
+        const data = await clienteService.listarClientes();
+        setClientes(data.data || []);
+      } catch (error) {
+        console.log("Erro ao carregar clientes", error);
+      }
     }
-    return false;
+
+    carregarClientes();
+  }, []);
+
+  useEffect(() => {
+    async function carregarServicos() {
+      try {
+        const data = await servicosService.listarServicos();
+        setServicos(data.data || []);
+      } catch (error) {
+        console.log("Erro ao carregar serviços", error);
+      }
+    }
+
+    carregarServicos();
+  }, []);
+
+  useEffect(() => {
+    async function carregarProdutos() {
+      try {
+        const data = await produtosService.listarProdutos();
+        setProdutos((data.data || []).map(normalizeProduto));
+      } catch (error) {
+        console.log("Erro ao carregar produtos", error);
+      }
+    }
+
+    carregarProdutos();
+  }, []);
+
+  const login = async (email: string, senha: string): Promise<boolean> => {
+    try {
+      const data = await loginApi(email, senha);
+
+      if (!data.user) {
+        console.log("Login sem usuário na resposta da API", data);
+        return false;
+      }
+
+      const user = normalizeUser(data.user);
+
+      localStorage.setItem("user", JSON.stringify(user));
+      setCurrentUser(user);
+      setCurrentScreen("dashboard");
+
+      return true;
+    } catch (error) {
+      console.log(error);
+      return false;
+    }
   };
 
-  // NOVO: Função para cadastro de novos usuários (apenas Operador para o protótipo)
-  const cadastro = (newUser: Omit<User, 'id' | 'role'>, senha: string) => {
-    if (mockUsers.some(u => u.email === newUser.email)) {
-      return false; // Email já existe
-    }
+  const cadastro = (
+    newUser: Omit<User, "id" | "nivel" | "role">,
+    senha: string,
+  ) => {
+    if (!newUser.email || !senha) return false;
 
-    // Regra: Novo usuário é sempre um Operador (pode ser ajustado pelo Admin depois)
-    const newId = Date.now().toString();
     const registeredUser: User = {
       ...newUser,
-      id: newId,
-      role: 'operador' 
+      id: Date.now().toString(),
+      nivel: "operador",
+      role: "operador",
     };
-    
-    setMockUsers(prevUsers => [...prevUsers, registeredUser]);
 
-    // Autentica o usuário automaticamente após o cadastro (para simplificar o fluxo)
-    if (senha === 'senha123') { // Simulação, senhas reais seriam diferentes
-      setCurrentUser(registeredUser);
-      setCurrentScreen('dashboard');
-      return true;
-    }
+    localStorage.setItem("user", JSON.stringify(registeredUser));
+    localStorage.setItem("token", "local-prototype-token");
+    setCurrentUser(registeredUser);
+    setCurrentScreen("dashboard");
 
-    // Se a senha for diferente de 'senha123' na simulação (embora não devesse acontecer aqui)
-    return false;
+    return true;
+  };
+
+  const updateCurrentUser = (userData: Partial<User>) => {
+    if (!currentUser) return;
+
+    const nivel = normalizeRole(userData.nivel || userData.role || currentUser.nivel);
+    const updatedUser = {
+      ...currentUser,
+      ...userData,
+      nivel,
+      role: nivel,
+    };
+
+    setCurrentUser(updatedUser);
+    localStorage.setItem("user", JSON.stringify(updatedUser));
   };
 
   const logout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
     setCurrentUser(null);
-    setCurrentScreen('login'); // Redireciona para o login após logout
+    setCurrentScreen("login");
   };
 
-  const setCurrentScreenSafe = (screen: string) => {
-    // Wrapper para garantir que o tipo Screen seja usado, embora o parâmetro seja string no TS
-    setCurrentScreen(screen as Screen); 
-  };
-
-  const addCliente = (cliente: Omit<Cliente, 'id'>) => {
-    const newCliente = {...cliente, id: Date.now().toString() };
-    setClientes([...clientes, newCliente]);
+  const addCliente = (cliente: Omit<Cliente, "id">) => {
+    const newCliente = { ...cliente, id: Date.now().toString() };
+    setClientes((prev) => [...prev, newCliente]);
   };
 
   const updateCliente = (id: string, cliente: Partial<Cliente>) => {
-    setClientes(clientes.map(c => c.id === id ? { ...c, ...cliente } : c));
+    setClientes((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, ...cliente } : c)),
+    );
   };
 
   const deleteCliente = (id: string) => {
-    setClientes(clientes.filter(c => c.id !== id));
+    setClientes((prev) => prev.filter((c) => c.id !== id));
   };
 
-  const addProduto = (produto: Omit<Produto, 'id'>) => {
-    const newProduto = {...produto, id: Date.now().toString() };
-    setProdutos([...produtos, newProduto]);
+  const addProduto = async (produto: Omit<Produto, "id">) => {
+    try {
+      await produtosService.criarProduto(produto);
+      const data = await produtosService.listarProdutos();
+      setProdutos((data.data || []).map(normalizeProduto));
+    } catch (error) {
+      console.log("Erro ao criar produto", error);
+    }
   };
 
-  const updateProduto = (id: string, produto: Partial<Produto>) => {
-    setProdutos(produtos.map(p => p.id === id ? { ...p, ...produto } : p));
+  const updateProduto = async (id: string, produto: Partial<Produto>) => {
+    try {
+      await produtosService.atualizarProduto(id, produto);
+      const data = await produtosService.listarProdutos();
+      setProdutos((data.data || []).map(normalizeProduto));
+    } catch (error) {
+      console.log("Erro ao atualizar produto", error);
+    }
   };
 
-  const deleteProduto = (id: string) => {
-    setProdutos(produtos.filter(p => p.id !== id));
+  const deleteProduto = async (id: string) => {
+    try {
+      await produtosService.deletarProduto(id);
+      setProdutos((prev) => prev.filter((p) => p.id !== id));
+    } catch (error) {
+      console.log("Erro ao deletar produto", error);
+    }
   };
 
-  const addServico = (servico: Omit<Servico, 'id'>) => {
-    const newServico = {...servico, id: Date.now().toString() };
-    setServicos([...servicos, newServico]);
+  const addServico = async (servico: Omit<Servico, "id">) => {
+    try {
+      const data = await servicosService.criarServicos(servico);
+      setServicos((prev) => [...prev, data.data]);
+    } catch (error) {
+      console.log("Erro ao criar serviço", error);
+    }
   };
 
-  const updateServico = (id: string, servico: Partial<Servico>) => {
-    setServicos(servicos.map(s => s.id === id ? { ...s, ...servico } : s));
+  const updateServico = async (id: string, servico: Partial<Servico>) => {
+    try {
+      const data = await servicosService.atualizarServicos(id, servico);
+      setServicos((prev) => prev.map((s) => (s.id === id ? data.data : s)));
+    } catch (error) {
+      console.log("Erro ao atualizar serviço", error);
+    }
   };
 
-  const deleteServico = (id: string) => {
-    setServicos(servicos.filter(s => s.id !== id));
+  const deleteServico = async (id: string) => {
+    try {
+      await servicosService.deletarServicos(id);
+      setServicos((prev) => prev.filter((s) => s.id !== id));
+    } catch (error) {
+      console.log("Erro ao deletar serviço", error);
+    }
   };
 
-  const addOrdem = (ordem: Omit<OrdemServico, 'id' | 'dataCriacao' | 'dataAtualizacao'>) => {
+  const addOrdem = (
+    ordem: Omit<OrdemServico, "id" | "dataCriacao" | "dataAtualizacao">,
+  ) => {
     const newOrdem: OrdemServico = {
       ...ordem,
       id: Date.now().toString(),
       dataCriacao: new Date().toISOString(),
       dataAtualizacao: new Date().toISOString(),
     };
-    setOrdens([...ordens, newOrdem]);
 
-    const produto = produtos.find(p => p.id === ordem.produtoId);
-    if (produto && produto.quantidadeEstoque > 0) {
-      updateProduto(produto.id, { quantidadeEstoque: produto.quantidadeEstoque - 1 });
-    }
+    setOrdens((prev) => [...prev, newOrdem]);
   };
 
   const updateOrdem = (id: string, ordem: Partial<OrdemServico>) => {
-    const updatedOrdem = {...ordem, dataAtualizacao: new Date().toISOString() };
-    setOrdens(ordens.map(o => o.id === id ? {...o, ...updatedOrdem } : o));
+    setOrdens((prev) =>
+      prev.map((o) =>
+        o.id === id
+          ? { ...o, ...ordem, dataAtualizacao: new Date().toISOString() }
+          : o,
+      ),
+    );
   };
 
-  const addVenda = (venda: Omit<Venda, 'id' | 'data'>) => {
+  const addVenda = (venda: Omit<Venda, "id" | "data">) => {
     const newVenda: Venda = {
       ...venda,
       id: Date.now().toString(),
       data: new Date().toISOString(),
     };
-    setVendas([...vendas, newVenda]);
+
+    setVendas((prev) => [...prev, newVenda]);
   };
 
-  const getClienteById = (id: string) => clientes.find(c => c.id === id);
-  const getProdutoById = (id: string) => produtos.find(p => p.id === id);
+  const getClienteById = (id: string) => clientes.find((c) => c.id === id);
+  const getProdutoById = (id: string) => produtos.find((p) => p.id === id);
 
   return (
     <AppContext.Provider
       value={{
         currentUser,
         currentScreen,
+        isAuthenticated,
+        isAdmin,
+        isOperador,
+        hasPermission,
         clientes,
         produtos,
         servicos,
@@ -336,8 +428,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         vendas,
         login,
         cadastro,
+        updateCurrentUser,
         logout,
-        setCurrentScreen: setCurrentScreenSafe,
+        setCurrentScreen,
         addCliente,
         updateCliente,
         deleteCliente,
@@ -361,8 +454,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
 export function useApp() {
   const context = useContext(AppContext);
+
   if (!context) {
-    throw new Error('useApp must be used within AppProvider');
+    throw new Error("useApp must be used within AppProvider");
   }
+
   return context;
 }

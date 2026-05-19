@@ -1,23 +1,32 @@
-import { useState } from 'react';
-import { KeyRound } from 'lucide-react';
-import { useApp } from '../context/AppContext';
-import { Logo } from './Logo';
+import { useState } from "react";
+import { useApp } from "../context/AppContext";
+import { Logo } from "./Logo";
 
 export function Login() {
-  // 1. IMPORTAÇÃO: Destruturar setCurrentScreen do contexto
   const { login, setCurrentScreen } = useApp();
-  const [email, setEmail] = useState('');
-  const [senha, setSenha] = useState(''); // CORRIGIDO: Adicionado nome da variável
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
+    setLoading(true);
 
-    if (login(email, senha)) {
-      // Login bem-sucedido (o AppContext já muda a tela para 'dashboard')
-    } else {
-      setError('Email ou senha incorretos');
+    try {
+      const sucesso = await login(email, senha);
+
+      if (sucesso) {
+        setCurrentScreen("dashboard");
+      } else {
+        setError("Email ou senha incorretos");
+      }
+    } catch (error) {
+      setError("Email ou senha incorretos");
+      console.log(error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -27,7 +36,9 @@ export function Login() {
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="flex flex-col items-center mb-8">
             <Logo size="large" variant="dark" />
-            <p className="text-gray-600 text-center mt-4">Sistema de Gestão de Chaveiro</p>
+            <p className="text-gray-600 text-center mt-4">
+              Sistema de Gestão de Chaveiro
+            </p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
@@ -43,6 +54,7 @@ export function Login() {
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="seu@email.com"
                 required
+                disabled={loading}
               />
             </div>
 
@@ -58,6 +70,7 @@ export function Login() {
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="••••••••"
                 required
+                disabled={loading}
               />
             </div>
 
@@ -69,32 +82,24 @@ export function Login() {
 
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors"
+              className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-70"
+              disabled={loading}
             >
-              Entrar
+              {loading ? "Entrando..." : "Entrar"}
             </button>
           </form>
-          
-          {/* 2. NOVO LINK PARA CADASTRO */}
+
           <div className="mt-4 text-center">
             <a
               href="#"
               onClick={(e) => {
                 e.preventDefault();
-                setCurrentScreen('cadastro'); // Mudar o estado global para 'cadastro'
+                setCurrentScreen("cadastro");
               }}
               className="text-sm text-blue-600 hover:text-blue-800 hover:underline cursor-pointer font-medium"
             >
               Não tem conta? Cadastre-se
             </a>
-          </div>
-          {/* FIM NOVO LINK */}
-
-          <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-            <p className="text-gray-600 text-center mb-2">Credenciais de teste:</p>
-            <p className="text-gray-700 text-center"><strong>Admin:</strong> admin@chavesalves.com</p>
-            <p className="text-gray-700 text-center"><strong>Operador:</strong> operador@chavesalves.com</p>
-            <p className="text-gray-700 text-center mt-2"><strong>Senha:</strong> senha123</p>
           </div>
         </div>
       </div>
