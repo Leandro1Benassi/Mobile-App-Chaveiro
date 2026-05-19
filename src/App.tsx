@@ -9,6 +9,8 @@ import { CadastroServicos } from './components/CadastroServicos';
 import { CopiaChave } from './components/CopiaChave';
 import { VendaDireta } from './components/VendaDireta';
 import { Retirada } from './components/Retirada';
+import { PerfilUsuario } from './components/PerfilUsuario';
+import { Configuracoes } from './components/Configuracoes';
 
 function AppContent() {
   const { currentUser, currentScreen } = useApp();
@@ -40,6 +42,10 @@ function AppContent() {
         return <VendaDireta />;
       case 'retirada':
         return <Retirada />;
+      case 'perfil':
+        return <PerfilUsuario />;
+      case 'configuracoes':
+        return <Configuracoes />;
       // Note que 'cadastro' não precisa estar aqui, pois é uma tela pré-autenticação.
       default:
         return <Dashboard />; // Tela padrão após login

@@ -8,10 +8,11 @@ import {
   AlertTriangle,
   TrendingUp,
   Image as ImageIcon,
-} from "lucide-react";
-import { useApp } from "../context/AppContext";
-import { Logo } from "./Logo";
-import produtosService from "../services/produtoService";
+  UserRound,
+  Settings,
+} from 'lucide-react';
+import { useApp } from '../context/AppContext';
+import { Logo } from './Logo';
 
 export function Dashboard() {
   const {
@@ -26,9 +27,11 @@ export function Dashboard() {
 
   const ordensAbertas = ordens.filter((o) => o.status !== "retirado").length;
   const ordensProntas = ordens.filter((o) => o.status === "pronto").length;
-  const produtosBaixoEstoque = produtos.filter(
-    (p) => p.quantidadeEstoque <= p.estoqueMinimo,
-  ).length;
+  const produtosBaixoEstoque = produtos.filter((p) => {
+    const estoqueAtual = p.quantidadeEstoque ?? p.estoque ?? 0;
+    const estoqueMinimo = p.estoqueMinimo ?? p.estoque_min ?? 0;
+    return estoqueAtual <= estoqueMinimo;
+  }).length;
   const vendasHoje = vendas.filter((v) => {
     const hoje = new Date().toDateString();
     const dataVenda = new Date(v.data).toDateString();
@@ -57,12 +60,29 @@ export function Dashboard() {
               {currentUser?.nivel === "admin" ? "Administrador" : "Operador"}
             </span>
           </div>
-          <button
-            onClick={logout}
-            className="p-2 hover:bg-blue-700 rounded-lg transition-colors"
-          >
-            <LogOut className="w-6 h-6" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentScreen('perfil')}
+              className="p-2 hover:bg-blue-700 rounded-lg transition-colors"
+              title="Perfil"
+            >
+              <UserRound className="w-6 h-6" />
+            </button>
+            <button
+              onClick={() => setCurrentScreen('configuracoes')}
+              className="p-2 hover:bg-blue-700 rounded-lg transition-colors"
+              title="Configurações"
+            >
+              <Settings className="w-6 h-6" />
+            </button>
+            <button
+              onClick={logout}
+              className="p-2 hover:bg-blue-700 rounded-lg transition-colors"
+              title="Sair"
+            >
+              <LogOut className="w-6 h-6" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -133,9 +153,9 @@ export function Dashboard() {
                   className="flex-shrink-0 w-32 bg-white rounded-xl shadow-md overflow-hidden"
                 >
                   <div className="relative h-24 bg-gradient-to-br from-gray-100 to-gray-200">
-                    {produto.imagemUrl ? (
+                    {(produto.imagemUrl || produto.logo_url) ? (
                       <img
-                        src={produto.imagemUrl}
+                        src={produto.imagemUrl || produto.logo_url}
                         alt={produto.nome}
                         className="w-full h-full object-cover"
                       />
@@ -147,12 +167,12 @@ export function Dashboard() {
                     <div className="absolute top-1 right-1">
                       <span
                         className={`px-2 py-0.5 rounded-full text-white text-xs shadow-lg ${
-                          produto.quantidadeEstoque <= produto.estoqueMinimo
+                          (produto.quantidadeEstoque ?? produto.estoque ?? 0) <= (produto.estoqueMinimo ?? produto.estoque_min ?? 0)
                             ? "bg-red-500"
                             : "bg-green-500"
                         }`}
                       >
-                        {produto.quantidadeEstoque}
+                        {produto.quantidadeEstoque ?? produto.estoque ?? 0}
                       </span>
                     </div>
                   </div>
@@ -197,6 +217,32 @@ export function Dashboard() {
             <div className="flex-1 text-left">
               <p className="text-gray-800">Venda Direta</p>
               <p className="text-gray-500">Registrar vendas rápidas</p>
+            </div>
+          </button>
+
+          <button
+            onClick={() => setCurrentScreen('perfil')}
+            className="w-full bg-white rounded-lg p-4 shadow hover:shadow-md transition-shadow flex items-center gap-4"
+          >
+            <div className="bg-sky-100 p-3 rounded-lg">
+              <UserRound className="w-6 h-6 text-sky-600" />
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-gray-800">Perfil do Usuário</p>
+              <p className="text-gray-500">Nome, CPF/CNPJ, contato e endereço</p>
+            </div>
+          </button>
+
+          <button
+            onClick={() => setCurrentScreen('configuracoes')}
+            className="w-full bg-white rounded-lg p-4 shadow hover:shadow-md transition-shadow flex items-center gap-4"
+          >
+            <div className="bg-slate-100 p-3 rounded-lg">
+              <Settings className="w-6 h-6 text-slate-600" />
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-gray-800">Configurações</p>
+              <p className="text-gray-500">Preferências e segurança do app</p>
             </div>
           </button>
 

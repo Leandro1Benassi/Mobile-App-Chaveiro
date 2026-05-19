@@ -1,31 +1,32 @@
 import { useState } from "react";
-import { KeyRound } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { Logo } from "./Logo";
 
 export function Login() {
-  // 1. IMPORTAÇÃO: Destruturar setCurrentScreen do contexto
   const { login, setCurrentScreen } = useApp();
   const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState(""); // CORRIGIDO: Adicionado nome da variável
+  const [senha, setSenha] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-
     setError("");
+    setLoading(true);
 
     try {
-      const data = await login(email, senha);
+      const sucesso = await login(email, senha);
 
-      console.log(data);
-
-      // muda para dashboard
-      setCurrentScreen("dashboard");
+      if (sucesso) {
+        setCurrentScreen("dashboard");
+      } else {
+        setError("Email ou senha incorretos");
+      }
     } catch (error) {
       setError("Email ou senha incorretos");
-
       console.log(error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -53,6 +54,7 @@ export function Login() {
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="seu@email.com"
                 required
+                disabled={loading}
               />
             </div>
 
@@ -68,6 +70,7 @@ export function Login() {
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="••••••••"
                 required
+                disabled={loading}
               />
             </div>
 
@@ -79,26 +82,25 @@ export function Login() {
 
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors"
+              className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-70"
+              disabled={loading}
             >
-              Entrar
+              {loading ? "Entrando..." : "Entrar"}
             </button>
           </form>
 
-          {/* 2. NOVO LINK PARA CADASTRO */}
           <div className="mt-4 text-center">
             <a
               href="#"
               onClick={(e) => {
                 e.preventDefault();
-                setCurrentScreen("cadastro"); // Mudar o estado global para 'cadastro'
+                setCurrentScreen("cadastro");
               }}
               className="text-sm text-blue-600 hover:text-blue-800 hover:underline cursor-pointer font-medium"
             >
               Não tem conta? Cadastre-se
             </a>
           </div>
-          {/* FIM NOVO LINK */}
         </div>
       </div>
     </div>

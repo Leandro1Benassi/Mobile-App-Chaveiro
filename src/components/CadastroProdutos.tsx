@@ -45,8 +45,8 @@ export function CadastroProdutos() {
   const [formData, setFormData] = useState({
     nome: "",
     codigo: "",
-    estoque: 0,
-    estoque_min: 10,
+    estoque: "",
+    estoque_min: "",
     logo_url: "",
     logo_file: null as File | null,
   });
@@ -65,8 +65,8 @@ export function CadastroProdutos() {
 
       payload.append("nome", formData.nome);
       payload.append("codigo", formData.codigo);
-      payload.append("estoque", String(formData.estoque));
-      payload.append("estoque_min", String(formData.estoque_min));
+      payload.append("estoque", String(Number(formData.estoque) || 0));
+      payload.append("estoque_min", String(Number(formData.estoque_min) || 0));
 
       // REGRA DO UPLOAD
       if (formData.logo_file) {
@@ -96,8 +96,8 @@ export function CadastroProdutos() {
     setFormData({
       nome: "",
       codigo: "",
-      estoque: 0,
-      estoque_min: 10,
+      estoque: "",
+      estoque_min: "",
       logo_url: "",
       logo_file: null,
     });
@@ -113,8 +113,11 @@ export function CadastroProdutos() {
       const produtosFormatados = res.data.map((p: any) => ({
         id: String(p.id),
         nome: p.nome,
+        codigo: p.codigo || "",
         valor: Number(p.valor),
-        estoque: p.estoque || 0,
+        estoque: Number(p.estoque) || 0,
+        estoque_min: Number(p.estoque_min) || 0,
+        logo_url: p.logo_url || "",
       }));
       console.log("ATUALIZANDO LISTA");
       setProdutos(produtosFormatados);
@@ -134,8 +137,8 @@ export function CadastroProdutos() {
       setFormData({
         nome: produto.nome,
         codigo: produto.codigo,
-        estoque: produto.estoque,
-        estoque_min: produto.estoque_min,
+        estoque: String(produto.estoque ?? ""),
+        estoque_min: String(produto.estoque_min ?? ""),
         logo_url: produto.logo_url || "",
         logo_file: null,
       });
@@ -395,11 +398,11 @@ export function CadastroProdutos() {
                   <label className="block text-gray-700 mb-2">Estoque *</label>
                   <input
                     type="number"
-                    value={formData.estoque_min}
+                    value={formData.estoque}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        estoque: parseInt(e.target.value),
+                        estoque: e.target.value.replace(/^0+(?=\d)/, ""),
                       })
                     }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
@@ -416,7 +419,7 @@ export function CadastroProdutos() {
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        estoque_min: parseInt(e.target.value),
+                        estoque_min: e.target.value.replace(/^0+(?=\d)/, ""),
                       })
                     }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"

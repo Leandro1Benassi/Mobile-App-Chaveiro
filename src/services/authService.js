@@ -1,27 +1,62 @@
 import api from "./api";
 
 export const login = async (email, senha) => {
-  const res = await api.post("/usuarios/login", {
-    email,
-    senha,
-  });
+  const endpoints = ["/usuarios/login", "/login"];
+  const payloads = [
+    { email, senha },
+    { email, password: senha },
+  ];
+  let response;
+  let lastError;
 
-  // salva token
-  localStorage.setItem("token", res.data.token);
+  for (const endpoint of endpoints) {
+    for (const payload of payloads) {
+      try {
+        response = await api.post(endpoint, payload);
+        break;
+      } catch (error) {
+        lastError = error;
+      }
+    }
 
-  // salva usuário
-  localStorage.setItem("user", JSON.stringify(res.data.user));
+    if (response) break;
+  }
 
-  return res.data;
+  if (!response) {
+    throw lastError;
+  }
+
+  const user =
+    response.data.user ||
+    response.data.usuario ||
+    response.data.data?.user ||
+    response.data.data?.usuario ||
+    (response.data.email || response.data.id ? response.data : null);
+  const token =
+    response.data.token ||
+    response.data.access_token ||
+    response.data.data?.token;
+
+  if (token) {
+    localStorage.setItem("token", token);
+  }
+
+  if (user) {
+    localStorage.setItem("user", JSON.stringify(user));
+  }
+
+  return {
+    ...response.data,
+    token,
+    user,
+  };
 };
 
-// logout
 export const logout = () => {
   localStorage.removeItem("token");
   localStorage.removeItem("user");
 };
 
-// pegar usuário
 export const getUser = () => {
   const user = localStorage.getItem("user");
 
