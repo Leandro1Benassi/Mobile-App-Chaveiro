@@ -89,7 +89,17 @@ export function Login() {
             </button>
           </form>
 
-          <div className="mt-4 text-center">
+          <div className="mt-4 flex flex-col items-center gap-3 text-center">
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                setCurrentScreen("recuperarSenha");
+              }}
+              className="text-sm text-blue-600 hover:text-blue-800 hover:underline cursor-pointer font-medium"
+            >
+              Esqueceu sua senha?
+            </a>
             <a
               href="#"
               onClick={(e) => {

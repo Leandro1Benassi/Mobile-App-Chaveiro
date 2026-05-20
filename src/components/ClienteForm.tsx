@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Save, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { Cliente } from '../context/AppContext'; // Importa a interface Cliente
+import { Logo } from './Logo'; 
 
 // Interface para as propriedades do formulário
 interface ClienteFormProps {
@@ -14,12 +14,12 @@ export function ClienteForm({ clienteIdParaEditar, onClose }: ClienteFormProps) 
   const { addCliente, updateCliente, getClienteById } = useApp();
   
   // Estados locais do formulário
-  const [nome, setNome] = useState('');
-  const = useState('');
-  const [cpf, setCpf] = useState('');
-  const [email, setEmail] = useState('');
-  const [endereco, setEndereco] = useState('');
-  const [loading, setLoading] = useState(false);
+  //const [nome, setNome] = useState('');
+  //const = useState('');
+  //const [cpf, setCpf] = useState('');
+  //const [email, setEmail] = useState('');
+  //const [endereco, setEndereco] = useState('');
+  // [loading, setLoading] = useState(false);
   
   const isEditing =!!clienteIdParaEditar;
 

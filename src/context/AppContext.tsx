@@ -13,6 +13,7 @@ import produtosService from "../services/produtoService";
 
 export type Screen =
   | "login"
+  | "recuperarSenha"
   | "cadastro"
   | "dashboard"
   | "clientes"
@@ -41,6 +42,7 @@ export interface User {
   bairro?: string;
   cidade?: string;
   estado?: string;
+  fotoPerfil?: string;
 }
 
 export interface Cliente {
@@ -163,6 +165,7 @@ const normalizeUser = (data: any): User => {
     bairro: data?.bairro || "",
     cidade: data?.cidade || "",
     estado: data?.estado || data?.uf || "",
+    fotoPerfil: data?.fotoPerfil || data?.foto_perfil || "",
   };
 };
 

@@ -1,18 +1,28 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   ArrowLeft,
   Building2,
+  Camera,
   CheckCircle2,
+  ImagePlus,
   Loader2,
   Mail,
   MapPin,
   Phone,
   Save,
   Search,
+  Trash2,
   UserRound,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { Logo } from './Logo';
+import {
+  formatCpfCnpj,
+  formatPhone,
+  getCpfCnpjLabel,
+  isValidEmail,
+  isValidPhone,
+  validateCpfCnpj,
+} from '../utils/contactValidation';
 
 type CepStatus = 'idle' | 'loading' | 'success' | 'error';
 
@@ -28,10 +38,11 @@ interface ViaCepResponse {
 
 export function PerfilUsuario() {
   const { currentUser, setCurrentScreen, updateCurrentUser } = useApp();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     nome: currentUser?.nome || '',
-    documento: currentUser?.documento || '',
-    telefone: currentUser?.telefone || '',
+    documento: formatCpfCnpj(currentUser?.documento || ''),
+    telefone: formatPhone(currentUser?.telefone || ''),
     email: currentUser?.email || '',
     cep: currentUser?.cep || '',
     endereco: currentUser?.endereco || '',
@@ -43,9 +54,17 @@ export function PerfilUsuario() {
   });
   const [cepStatus, setCepStatus] = useState<CepStatus>('idle');
   const [message, setMessage] = useState('');
+  const [photoError, setPhotoError] = useState('');
 
   const updateField = (field: keyof typeof formData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    const formattedValue =
+      field === 'documento'
+        ? formatCpfCnpj(value)
+        : field === 'telefone'
+          ? formatPhone(value)
+          : value;
+
+    setFormData(prev => ({ ...prev, [field]: formattedValue }));
     if (message) setMessage('');
   };
 
@@ -88,9 +107,68 @@ export function PerfilUsuario() {
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
+
+    const documento = formData.documento.trim();
+    const telefone = formData.telefone.trim();
+    const email = formData.email.trim();
+
+    if (documento && !validateCpfCnpj(documento)) {
+      setCepStatus('error');
+      setMessage(`${getCpfCnpjLabel(documento)} invalido. Verifique os numeros digitados.`);
+      return;
+    }
+
+    if (telefone && !isValidPhone(telefone)) {
+      setCepStatus('error');
+      setMessage('Telefone invalido. Use DDD + numero com 10 ou 11 digitos.');
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      setCepStatus('error');
+      setMessage('Email invalido. Verifique o endereco digitado.');
+      return;
+    }
+
     updateCurrentUser(formData);
     setCepStatus('success');
     setMessage('Perfil atualizado com sucesso.');
+  };
+
+  const handleProfilePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setPhotoError('Selecione um arquivo de imagem.');
+      event.target.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      updateCurrentUser({ fotoPerfil: String(reader.result) });
+      setPhotoError('');
+      setCepStatus('success');
+      setMessage('Foto de perfil atualizada.');
+      event.target.value = '';
+    };
+
+    reader.onerror = () => {
+      setPhotoError('Não foi possível carregar a foto.');
+      event.target.value = '';
+    };
+
+    reader.readAsDataURL(file);
+  };
+
+  const removeProfilePhoto = () => {
+    updateCurrentUser({ fotoPerfil: '' });
+    setPhotoError('');
+    setCepStatus('success');
+    setMessage('Foto de perfil removida.');
   };
 
   return (
@@ -108,12 +186,62 @@ export function PerfilUsuario() {
       </div>
 
       <div className="p-4 space-y-4">
-        <div className="bg-white rounded-lg p-4 shadow flex items-center justify-between gap-4">
-          <Logo size="medium" variant="dark" />
-          <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm">
-            {currentUser?.nivel === 'admin' ? 'Administrador' : 'Operador'}
-          </span>
-        </div>
+        <section className="bg-white rounded-lg p-4 shadow space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <img
+                src={currentUser?.fotoPerfil || '/sem-foto.png'}
+                alt="Foto de perfil"
+                className="w-20 h-20 rounded-full object-cover border border-gray-200 bg-gray-100"
+              />
+              <div>
+                <div className="flex items-center gap-2 text-gray-800">
+                  <Camera className="w-5 h-5 text-blue-600" />
+                  <h2>Foto de perfil</h2>
+                </div>
+                <p className="text-gray-500 text-sm mt-1">{currentUser?.email}</p>
+              </div>
+            </div>
+
+            <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm">
+              {currentUser?.nivel === 'admin' ? 'Administrador' : 'Operador'}
+            </span>
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleProfilePhotoUpload}
+            className="hidden"
+          />
+
+          <div className="grid gap-2 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
+            >
+              <ImagePlus className="w-5 h-5" />
+              Enviar foto
+            </button>
+
+            <button
+              type="button"
+              onClick={removeProfilePhoto}
+              className="w-full border border-gray-300 text-gray-700 py-3 rounded-lg hover:bg-gray-50 flex items-center justify-center gap-2"
+            >
+              <Trash2 className="w-5 h-5" />
+              Remover foto
+            </button>
+          </div>
+
+          {photoError && (
+            <div className="bg-red-50 text-red-700 border border-red-200 rounded-lg px-4 py-3">
+              {photoError}
+            </div>
+          )}
+        </section>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-lg p-4 shadow space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
@@ -138,6 +266,8 @@ export function PerfilUsuario() {
                   value={formData.documento}
                   onChange={(e) => updateField('documento', e.target.value)}
                   placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                  inputMode="numeric"
+                  maxLength={18}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -152,6 +282,8 @@ export function PerfilUsuario() {
                   value={formData.telefone}
                   onChange={(e) => updateField('telefone', e.target.value)}
                   placeholder="(11) 98765-4321"
+                  inputMode="tel"
+                  maxLength={15}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>

@@ -1,10 +1,22 @@
 import api from "./api";
 
+const getNestedValue = (data, keys) => {
+  for (const key of keys) {
+    const value = key.split(".").reduce((current, part) => current?.[part], data);
+
+    if (value) return value;
+  }
+
+  return null;
+};
+
 export const login = async (email, senha) => {
-  const endpoints = ["/usuarios/login", "/login"];
+  const endpoints = ["/usuarios/login"];
   const payloads = [
     { email, senha },
     { email, password: senha },
+    { login: email, senha },
+    { username: email, password: senha },
   ];
   let response;
   let lastError;
@@ -26,29 +38,41 @@ export const login = async (email, senha) => {
     throw lastError;
   }
 
-  const user =
-    response.data.user ||
-    response.data.usuario ||
-    response.data.data?.user ||
-    response.data.data?.usuario ||
-    (response.data.email || response.data.id ? response.data : null);
-  const token =
-    response.data.token ||
-    response.data.access_token ||
-    response.data.data?.token;
+  const user = getNestedValue(response.data, [
+    "user",
+    "usuario",
+    "data.user",
+    "data.usuario",
+    "data",
+  ]);
+  const token = getNestedValue(response.data, [
+    "token",
+    "access_token",
+    "accessToken",
+    "data.token",
+    "data.access_token",
+    "data.accessToken",
+  ]);
+  const normalizedUser =
+    user && typeof user === "object"
+      ? user
+      : {
+          id: email,
+          email,
+          nome: email.split("@")[0],
+          nivel: "operador",
+        };
 
   if (token) {
     localStorage.setItem("token", token);
   }
 
-  if (user) {
-    localStorage.setItem("user", JSON.stringify(user));
-  }
+  localStorage.setItem("user", JSON.stringify(normalizedUser));
 
   return {
     ...response.data,
     token,
-    user,
+    user: normalizedUser,
   };
 };
 
