@@ -10,14 +10,8 @@ import {
 } from "lucide-react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { useApp } from "../context/AppContext";
+import { useApp, Produto } from "../context/AppContext";
 import { UPLOADS_URL } from "../services/api";
-import {
-  criarProduto,
-  listarProdutos,
-  deletarProduto,
-  atualizarProduto,
-} from "../services/produtoService";
 
 const IMAGENS_SUGERIDAS = [
   "https://images.unsplash.com/photo-1578088085518-738839b57548?w=400",
@@ -39,7 +33,6 @@ export function CadastroProdutos() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showImagePicker, setShowImagePicker] = useState(false);
-  const [produto, setProdutos] = useState([]);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   const [formData, setFormData] = useState({
@@ -76,11 +69,11 @@ export function CadastroProdutos() {
       }
 
       if (editingId) {
-        await atualizarProduto(editingId, payload);
+        await updateProduto(editingId, payload as any);
 
         toast.success("Produto atualizado com sucesso!");
       } else {
-        await criarProduto(payload);
+        await addProduto(payload as any);
 
         toast.success("Produto salvo com sucesso!");
       }
@@ -105,30 +98,6 @@ export function CadastroProdutos() {
     setEditingId(null);
     setShowImagePicker(false);
   };
-
-  const fetchProdutos = async () => {
-    try {
-      const res = await listarProdutos();
-
-      const produtosFormatados = res.data.map((p: any) => ({
-        id: String(p.id),
-        nome: p.nome,
-        codigo: p.codigo || "",
-        valor: Number(p.valor),
-        estoque: Number(p.estoque) || 0,
-        estoque_min: Number(p.estoque_min) || 0,
-        logo_url: p.logo_url || "",
-      }));
-      console.log("ATUALIZANDO LISTA");
-      setProdutos(produtosFormatados);
-    } catch (error) {
-      console.error("Erro ao buscar produtos:", error);
-      toast.error("Erro ao carregar produtos");
-    }
-  };
-  useEffect(() => {
-    fetchProdutos();
-  }, []);
 
   const handleEdit = (id: string) => {
     const produto = produtos.find((p) => p.id === id);
@@ -158,9 +127,8 @@ export function CadastroProdutos() {
             <button
               onClick={async () => {
                 try {
-                  await deletarProduto(id);
+                  await deleteProduto(id);
 
-                  await fetchProdutos();
                   toast.success("Produto excluído!");
                 } catch {
                   toast.error("Erro ao excluir!");
@@ -465,7 +433,7 @@ export function CadastroProdutos() {
             ) : viewMode === "grid" ? (
               /* Visualização em Grade */
               <div className="grid grid-cols-2 gap-4">
-                {produtos.map((produto) => (
+                {produtos.map((produto: Produto) => (
                   <div
                     key={produto.id}
                     className={`bg-white rounded-xl shadow-md overflow-hidden transform hover:scale-105 transition-transform ${

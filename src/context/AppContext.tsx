@@ -59,10 +59,10 @@ export interface Produto {
   id: string;
   nome: string;
   codigo: string;
-  estoque?: number;
-  estoque_min?: number;
-  quantidadeEstoque?: number;
-  estoqueMinimo?: number;
+  estoque: number;
+  estoque_min: number;
+  quantidadeEstoque: number;
+  estoqueMinimo: number;
   logo_url?: string;
   imagemUrl?: string;
 }
@@ -113,7 +113,10 @@ interface AppContextType {
   ordens: OrdemServico[];
   vendas: Venda[];
   login: (email: string, senha: string) => Promise<boolean>;
-  cadastro: (newUser: Omit<User, "id" | "nivel" | "role">, senha: string) => boolean;
+  cadastro: (
+    newUser: Omit<User, "id" | "nivel" | "role">,
+    senha: string,
+  ) => boolean;
   updateCurrentUser: (user: Partial<User>) => void;
   logout: () => void;
   setCurrentScreen: (screen: Screen) => void;
@@ -231,7 +234,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     async function carregarProdutos() {
       try {
         const data = await produtosService.listarProdutos();
-        setProdutos((data.data || []).map(normalizeProduto));
+
+        const produtosFormatados: Produto[] = data.data.map((p: any) => ({
+          id: String(p.id),
+          nome: p.nome || "",
+          codigo: p.codigo || "",
+          estoque: Number(p.estoque) || 0,
+          estoque_min: Number(p.estoque_min) || 0,
+          logo_url: p.logo_url || "",
+        }));
+
+        setProdutos(produtosFormatados);
       } catch (error) {
         console.log("Erro ao carregar produtos", error);
       }
@@ -239,7 +252,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     carregarProdutos();
   }, []);
-
   const login = async (email: string, senha: string): Promise<boolean> => {
     try {
       const data = await loginApi(email, senha);
@@ -286,7 +298,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const updateCurrentUser = (userData: Partial<User>) => {
     if (!currentUser) return;
 
-    const nivel = normalizeRole(userData.nivel || userData.role || currentUser.nivel);
+    const nivel = normalizeRole(
+      userData.nivel || userData.role || currentUser.nivel,
+    );
     const updatedUser = {
       ...currentUser,
       ...userData,
