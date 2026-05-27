@@ -11,6 +11,7 @@ import { VendaDireta } from './components/VendaDireta';
 import { Retirada } from './components/Retirada';
 import { PerfilUsuario } from './components/PerfilUsuario';
 import { Configuracoes } from './components/Configuracoes';
+import { RecuperarSenha } from './components/RecuperarSenha';
 
 function AppContent() {
   const { currentUser, currentScreen } = useApp();
@@ -18,6 +19,8 @@ function AppContent() {
   // NOVO FLUXO: Se o usuário NÃO está logado, ele só pode ver o Login ou o Cadastro.
   if (!currentUser) {
     switch (currentScreen) {
+      case 'recuperarSenha':
+        return <RecuperarSenha />;
       case 'cadastro': // <--- Permite acessar a tela de Cadastro antes do login
         return <CadastroUser />;
       default:

@@ -55,7 +55,7 @@ export function Dashboard() {
       <div className="bg-blue-600 text-white p-4 shadow-lg">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <Logo />
+            <Logo imageSrc={currentUser?.fotoPerfil} />
             <p className="text-blue-100 mt-1">Olá, {currentUser?.nome}</p>
             <span className="inline-block mt-1 px-2 py-1 bg-blue-700 rounded text-blue-100">
               {currentUser?.nivel === "admin" ? "Administrador" : "Operador"}

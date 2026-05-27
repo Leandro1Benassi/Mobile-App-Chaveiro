@@ -12,6 +12,7 @@ import {
 import { useApp } from '../context/AppContext';
 import { Logo } from './Logo';
 
+
 interface SettingsState {
   notificacoes: boolean;
   alertasEstoque: boolean;
@@ -88,14 +89,14 @@ export function Configuracoes() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="bg-slate-700 text-white p-4 shadow-lg">
+      <div className="bg-blue-600 text-white p-4 shadow-lg">
         <div className="flex items-center gap-4">
-          <button onClick={() => setCurrentScreen('dashboard')} className="p-2 hover:bg-slate-800 rounded-lg">
+          <button onClick={() => setCurrentScreen('dashboard')} className="p-2 hover:bg-blue-700 rounded-lg">
             <ArrowLeft className="w-6 h-6" />
           </button>
           <div className="flex-1">
             <h1>Configurações</h1>
-            <p className="text-slate-200 mt-1">Preferências do aplicativo</p>
+            <p className="text-blue-100 mt-1">Preferências do aplicativo</p>
           </div>
         </div>
       </div>
@@ -191,7 +192,7 @@ export function Configuracoes() {
         <button
           type="button"
           onClick={saveSettings}
-          className="w-full bg-slate-700 text-white py-3 rounded-lg hover:bg-slate-800 flex items-center justify-center gap-2"
+          className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
         >
           <Save className="w-5 h-5" />
           Salvar Configurações

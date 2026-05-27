@@ -4,9 +4,10 @@ interface LogoProps {
   size?: 'small' | 'medium' | 'large';
   showText?: boolean;
   variant?: 'light' | 'dark';
+  imageSrc?: string; // Mantido caso ainda queira passar uma foto de perfil dinâmica
 }
 
-export function Logo({ size = 'medium', showText = true, variant = 'light' }: LogoProps) {
+export function Logo({ size = 'medium', showText = true, variant = 'light', imageSrc }: LogoProps) {
   const sizeClasses = {
     small: 'w-8 h-8',
     medium: 'w-12 h-12',
@@ -25,18 +26,27 @@ export function Logo({ size = 'medium', showText = true, variant = 'light' }: Lo
     large: 'w-8 h-8',
   };
 
+  // Define qual imagem usar: a enviada por propriedade ou a sua logo padrão
+  const finalImageSrc = imageSrc || '/LOGO-CHAVE.PNG';
+
   return (
     <div className="flex items-center gap-3">
-      <div className={`${sizeClasses[size]} rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-lg`}>
-        <KeyRound className={`${iconSizes[size]} ${variant === 'light' ? 'text-white' : 'text-gray-800'}`} />
+      <div className={`${sizeClasses[size]} rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-lg overflow-hidden`}>
+        {/* Agora renderiza sempre a imagem (seja a logo-chave ou uma foto de perfil) */}
+        <img
+          src={finalImageSrc}
+          alt="Logo Chaveiro Pro"
+          className="w-full h-full object-cover"
+        />
       </div>
+      
       {showText && (
         <div>
           <h1 className={`${textSizes[size]} ${variant === 'light' ? 'text-white' : 'text-gray-800'} font-bold`}>
-            Chaves Alves
+            Chaveiro Pro
           </h1>
           <p className={`text-xs ${variant === 'light' ? 'text-white/80' : 'text-gray-600'}`}>
-            Soluções em Chaves
+            O App do Chaveiro
           </p>
         </div>
       )}

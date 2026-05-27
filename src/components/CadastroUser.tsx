@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { KeyRound } from 'lucide-react';
 import { useApp } from '../context/AppContext'; 
-import { Logo } from './Logo'; 
+import {Logo} from './Logo'
+//import {Cliente} from '../context/AppContext'; // vem do cliente 
 
 // Renomeando a função para seguir o padrão do arquivo (CadastroUser.tsx)
 export function CadastroUser() { 

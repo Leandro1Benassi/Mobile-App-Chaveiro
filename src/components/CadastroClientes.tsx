@@ -10,6 +10,14 @@ import {
   atualizarCliente,
   deletarCliente,
 } from "../services/clientesService";
+import {
+  formatCpfCnpj,
+  formatPhone,
+  getCpfCnpjLabel,
+  isValidEmail,
+  isValidPhone,
+  validateCpfCnpj,
+} from "../utils/contactValidation";
 
 type Cliente = {
   id: string;
@@ -45,9 +53,9 @@ export function CadastroClientes() {
       const clientesFormatados = res.data.map((c: any) => ({
         id: String(c.id),
         nome: c.name,
-        telefone: c.tel,
+        telefone: formatPhone(c.tel || ""),
         email: c.email,
-        cpf: c.cpf,
+        cpf: formatCpfCnpj(c.cpf || ""),
         cep: c.cep || "",
       }));
 
@@ -65,6 +73,21 @@ export function CadastroClientes() {
   // Criar ou atualizar
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!isValidPhone(formData.telefone)) {
+      toast.error("Telefone invalido. Use DDD + numero com 10 ou 11 digitos.");
+      return;
+    }
+
+    if (formData.cpf && !validateCpfCnpj(formData.cpf)) {
+      toast.error(`${getCpfCnpjLabel(formData.cpf)} invalido. Verifique os numeros digitados.`);
+      return;
+    }
+
+    if (formData.email && !isValidEmail(formData.email)) {
+      toast.error("Email invalido. Verifique o endereco digitado.");
+      return;
+    }
 
     try {
       if (editingId) {
@@ -109,6 +132,17 @@ export function CadastroClientes() {
     setShowForm(false);
   };
 
+  const updateFormField = (field: keyof typeof formData, value: string) => {
+    const formattedValue =
+      field === "telefone"
+        ? formatPhone(value)
+        : field === "cpf"
+          ? formatCpfCnpj(value)
+          : value;
+
+    setFormData({ ...formData, [field]: formattedValue });
+  };
+
   // Editar
   const handleEdit = (id: string) => {
     const cliente = clientes.find((c) => c.id === id);
@@ -116,8 +150,8 @@ export function CadastroClientes() {
     if (cliente) {
       setFormData({
         nome: cliente.nome,
-        telefone: cliente.telefone,
-        cpf: cliente.cpf || "",
+        telefone: formatPhone(cliente.telefone),
+        cpf: formatCpfCnpj(cliente.cpf || ""),
         email: cliente.email || "",
         cep: cliente.cep || "",
       });
@@ -224,25 +258,25 @@ export function CadastroClientes() {
                 <input
                   type="tel"
                   value={formData.telefone}
-                  onChange={(e) =>
-                    setFormData({ ...formData, telefone: e.target.value })
-                  }
+                  onChange={(e) => updateFormField("telefone", e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                   placeholder="(11) 98765-4321"
+                  inputMode="tel"
+                  maxLength={15}
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-gray-700 mb-2">CPF</label>
+                <label className="block text-gray-700 mb-2">CPF ou CNPJ</label>
                 <input
                   type="text"
                   value={formData.cpf}
-                  onChange={(e) =>
-                    setFormData({ ...formData, cpf: e.target.value })
-                  }
+                  onChange={(e) => updateFormField("cpf", e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  placeholder="000.000.000-00"
+                  placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                  inputMode="numeric"
+                  maxLength={18}
                 />
               </div>
 
@@ -251,9 +285,7 @@ export function CadastroClientes() {
                 <input
                   type="email"
                   value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
+                  onChange={(e) => updateFormField("email", e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                   placeholder="cliente@email.com"
                 />
@@ -329,7 +361,7 @@ export function CadastroClientes() {
                         <p className="text-gray-500 mt-1">{cliente.email}</p>
                       )}
                       {cliente.cpf && (
-                        <p className="text-gray-500">CPF: {cliente.cpf}</p>
+                        <p className="text-gray-500">{getCpfCnpjLabel(cliente.cpf)}: {cliente.cpf}</p>
                       )}
                     </div>
                     <div className="flex gap-2">
