@@ -1,4 +1,5 @@
 import { KeyRound } from "lucide-react";
+import { UPLOADS_URL } from "../services/api";
 
 interface LogoProps {
   size?: "small" | "medium" | "large";
@@ -32,7 +33,7 @@ export function Logo({
   };
 
   // Define qual imagem usar: a enviada por propriedade ou a sua logo padrão
-  const finalImageSrc = imageSrc || "/img/LOGO.jpeg";
+  const finalImageSrc = "LOGO.jpeg";
 
   return (
     <div className="flex items-center gap-3">
@@ -41,8 +42,8 @@ export function Logo({
       >
         {/* Agora renderiza sempre a imagem (seja a logo-chave ou uma foto de perfil) */}
         <img
-          src={finalImageSrc}
-          alt="Logo Chaveiro Pro"
+          src={`${UPLOADS_URL}/${finalImageSrc}`}
+          alt="logo"
           className="w-full h-full object-cover"
         />
       </div>
