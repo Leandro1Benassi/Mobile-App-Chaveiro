@@ -1,4 +1,5 @@
 import api from "./api";
+import { API_BASE_URL } from "./api";
 
 const getNestedValue = (data, keys) => {
   for (const key of keys) {
@@ -77,6 +78,21 @@ export const login = async (email, senha) => {
     token,
     user: normalizedUser,
   };
+};
+
+export const getGoogleLoginUrl = () => {
+  const configuredUrl = import.meta.env.VITE_GOOGLE_AUTH_URL;
+  const authUrl = new URL(configuredUrl || `${API_BASE_URL}/usuarios/google`);
+
+  if (!authUrl.searchParams.has("redirect_uri")) {
+    authUrl.searchParams.set("redirect_uri", window.location.origin);
+  }
+
+  return authUrl.toString();
+};
+
+export const loginWithGoogle = () => {
+  window.location.href = getGoogleLoginUrl();
 };
 
 export const logout = () => {

@@ -6,7 +6,10 @@ import {
   ReactNode,
 } from "react";
 
-import { login as loginApi } from "../services/authService";
+import {
+  login as loginApi,
+  loginWithGoogle as loginWithGoogleApi,
+} from "../services/authService";
 import clienteService from "../services/clientesService";
 import servicosService from "../services/servicosService";
 import osService from "../services/osService";
@@ -126,6 +129,7 @@ interface AppContextType {
   ordens: OrdemServico[];
   vendas: Venda[];
   login: (email: string, senha: string) => Promise<boolean>;
+  loginWithGoogle: () => void;
   cadastro: (
     newUser: Omit<User, "id" | "nivel" | "role">,
     senha: string,
@@ -193,6 +197,40 @@ const normalizeProduto = (produto: Produto): Produto => ({
   imagemUrl: produto.imagemUrl ?? produto.logo_url,
 });
 
+const getUrlAuthParam = (params: URLSearchParams, keys: string[]) => {
+  for (const key of keys) {
+    const value = params.get(key);
+
+    if (value) return value;
+  }
+
+  return null;
+};
+
+const parseOAuthUser = (params: URLSearchParams): Partial<User> | null => {
+  const encodedUser = getUrlAuthParam(params, ["user", "usuario"]);
+
+  if (encodedUser) {
+    try {
+      return JSON.parse(decodeURIComponent(encodedUser));
+    } catch (error) {
+      console.log("Erro ao ler usuário do login Google", error);
+    }
+  }
+
+  const email = getUrlAuthParam(params, ["email"]);
+  const nome = getUrlAuthParam(params, ["nome", "name"]);
+
+  if (!email && !nome) return null;
+
+  return {
+    id: email || Date.now().toString(),
+    email: email || "",
+    nome: nome || email?.split("@")[0] || "Usuário Google",
+    nivel: "operador",
+  };
+};
+
 export function AppProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentScreen, setCurrentScreen] = useState<Screen>("login");
@@ -212,10 +250,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("user");
-    const token = localStorage.getItem("token");
+    const urlParams = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const params = new URLSearchParams([...urlParams, ...hashParams]);
+    const token = getUrlAuthParam(params, ["token", "access_token", "accessToken"]);
 
-    if (savedUser && token) {
+    if (token) {
+      const oauthUser = normalizeUser(parseOAuthUser(params) || {});
+
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(oauthUser));
+      setCurrentUser(oauthUser);
+      setCurrentScreen("dashboard");
+      window.history.replaceState({}, document.title, window.location.pathname);
+      return;
+    }
+
+    const savedUser = localStorage.getItem("user");
+    const savedToken = localStorage.getItem("token");
+
+    if (savedUser && savedToken) {
       setCurrentUser(normalizeUser(JSON.parse(savedUser)));
       setCurrentScreen("dashboard");
     }
@@ -293,6 +347,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return false;
     }
   };
+
+  const loginWithGoogle = () => {
+    loginWithGoogleApi();
+  };
+
   useEffect(() => {
     if (!isAuthenticated) return;
 
@@ -486,6 +545,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ordens,
         vendas,
         login,
+        loginWithGoogle,
         cadastro,
         updateCurrentUser,
         logout,
