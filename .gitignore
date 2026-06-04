@@ -1,1 +1,25 @@
+# dependências
 node_modules/
+
+# build do Vite
+dist/
+build/
+
+# Capacitor / Android build
+android/.gradle/
+android/build/
+android/app/build/
+
+# arquivos de ambiente
+.env
+.env.local
+.env.*.local
+
+# sistema
+.DS_Store
+Thumbs.db
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
