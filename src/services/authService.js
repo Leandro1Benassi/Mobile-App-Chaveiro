@@ -14,7 +14,7 @@ export const login = async (email, senha) => {
       return null;
     }
 
-    //  salva token IMEDIATAMENTE em memória + storage
+    // salva token IMEDIATAMENTE em memória + storage
     setAuthToken(token);
 
     localStorage.setItem("user", JSON.stringify(user));
