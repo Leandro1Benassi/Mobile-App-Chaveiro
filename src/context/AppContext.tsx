@@ -9,6 +9,7 @@ import {
 import { login as loginApi } from "../services/authService";
 import clienteService from "../services/clientesService";
 import servicosService from "../services/servicosService";
+import osService from "../services/osService";
 import produtosService from "../services/produtoService";
 
 export type Screen =
@@ -46,7 +47,7 @@ export interface User {
 }
 
 export interface Cliente {
-  id: string;
+  id: number;
   name?: string;
   nome?: string;
   tel?: string;
@@ -77,19 +78,29 @@ export interface Servico {
   duracaoEstimada: string;
 }
 
-export type StatusOrdem = "pendente" | "em_producao" | "pronto" | "retirado";
-
+//export type StatusOrdem = "pendente" | "em_producao" | "pronto" | "retirado";
 export interface OrdemServico {
   id: string;
-  clienteId: string;
-  chaveOriginal: string;
-  produtoId: string;
-  status: StatusOrdem;
-  dataCriacao: string;
-  dataAtualizacao: string;
-  valor?: number;
-  formaPagamento?: string;
-  assinatura?: string;
+  id_cliente: number;
+  id_empresa: number;
+  observacao?: string;
+  data_entrada?: string;
+  data_entrega?: string;
+  status_ordem: "ABERTA" | "EM_ANDAMENTO" | "PRONTO" | "ENTREGUE" | "PENDENTE";
+  valor_total: number;
+  vendida?: boolean;
+}
+export interface OrdemServicoItem {
+  id?: string;
+  id_os?: number;
+
+  id_produto?: string;
+  id_servico?: number;
+
+  descricao: string;
+  quantidade: number;
+  valor_unitario: number;
+  valor_total: number;
 }
 
 export interface Venda {
@@ -131,10 +142,13 @@ interface AppContextType {
   addServico: (servico: Omit<Servico, "id">) => void;
   updateServico: (id: string, servico: Partial<Servico>) => void;
   deleteServico: (id: string) => void;
-  addOrdem: (
-    ordem: Omit<OrdemServico, "id" | "dataCriacao" | "dataAtualizacao">,
-  ) => void;
-  updateOrdem: (id: string, ordem: Partial<OrdemServico>) => void;
+  addOrdem: (ordem: Omit<OrdemServico, "id">) => void;
+  updateOrdem: (id: string, ordem: Partial<OrdemServico>) => Promise<void>;
+
+  deleteOrdem: (id: string) => Promise<void>;
+  addOrdemItem: (item: Omit<OrdemServicoItem, "id">) => void;
+
+  //updateOrdem: (id: number, ordem: Partial<OrdemServico>) => void;
   addVenda: (venda: Omit<Venda, "id" | "data">) => void;
   getClienteById: (id: string) => Cliente | undefined;
   getProdutoById: (id: string) => Produto | undefined;
@@ -208,6 +222,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     async function carregarClientes() {
       try {
         const data = await clienteService.listarClientes();
@@ -218,9 +233,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
 
     carregarClientes();
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     async function carregarServicos() {
       try {
         const data = await servicosService.listarServicos();
@@ -231,9 +247,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
 
     carregarServicos();
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     async function carregarProdutos() {
       try {
         const data = await produtosService.listarProdutos();
@@ -254,7 +271,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
 
     carregarProdutos();
-  }, []);
+  }, [isAuthenticated]);
   const login = async (email: string, senha: string): Promise<boolean> => {
     try {
       const data = await loginApi(email, senha);
@@ -276,7 +293,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return false;
     }
   };
+  useEffect(() => {
+    if (!isAuthenticated) return;
 
+    async function carregarOs() {
+      try {
+        const data = await osService.listarOs();
+        setOrdens(data.data || []);
+      } catch (error) {
+        console.log("Erro ao carregar OS", error);
+      }
+    }
+
+    carregarOs();
+  }, [isAuthenticated]);
   const cadastro = (
     newUser: Omit<User, "id" | "nivel" | "role">,
     senha: string,
@@ -393,29 +423,41 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const addOrdem = (
-    ordem: Omit<OrdemServico, "id" | "dataCriacao" | "dataAtualizacao">,
-  ) => {
-    const newOrdem: OrdemServico = {
-      ...ordem,
-      id: Date.now().toString(),
-      dataCriacao: new Date().toISOString(),
-      dataAtualizacao: new Date().toISOString(),
-    };
+  const addOrdem = async (ordem: Omit<OrdemServico, "id">) => {
+    try {
+      const novaOs = await osService.criarOs(ordem);
 
-    setOrdens((prev) => [...prev, newOrdem]);
+      const lista = await osService.listarOs();
+
+      setOrdens(lista.data || []);
+
+      return novaOs.data;
+    } catch (error) {
+      console.log("Erro ao criar OS", error);
+      throw error;
+    }
   };
 
-  const updateOrdem = (id: string, ordem: Partial<OrdemServico>) => {
-    setOrdens((prev) =>
-      prev.map((o) =>
-        o.id === id
-          ? { ...o, ...ordem, dataAtualizacao: new Date().toISOString() }
-          : o,
-      ),
-    );
-  };
+  const updateOrdem = async (id: string, ordem: Partial<OrdemServico>) => {
+    try {
+      await osService.atualizarOs(id, ordem);
 
+      const lista = await osService.listarOs();
+
+      setOrdens(lista.data || []);
+    } catch (error) {
+      console.log("Erro ao atualizar OS", error);
+    }
+  };
+  const deleteOrdem = async (id: string) => {
+    try {
+      await osService.deletarOs(id);
+
+      setOrdens((prev) => prev.filter((os) => String(os.id) !== id));
+    } catch (error) {
+      console.log("Erro ao excluir OS", error);
+    }
+  };
   const addVenda = (venda: Omit<Venda, "id" | "data">) => {
     const newVenda: Venda = {
       ...venda,
@@ -459,6 +501,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         deleteServico,
         addOrdem,
         updateOrdem,
+        deleteOrdem,
+
         addVenda,
         getClienteById,
         getProdutoById,

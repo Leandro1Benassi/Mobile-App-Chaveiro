@@ -1,26 +1,26 @@
-import { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, CheckCircle } from 'lucide-react';
-import { useApp } from '../context/AppContext';
-import SignatureCanvas from 'react-signature-canvas';
+import { useState, useEffect, useRef } from "react";
+import { ArrowLeft, CheckCircle } from "lucide-react";
+import { useApp } from "../context/AppContext";
+import SignatureCanvas from "react-signature-canvas";
 
 export function Retirada() {
-  const { setCurrentScreen, ordens, updateOrdem, getClienteById, getProdutoById } = useApp();
+  const { setCurrentScreen, ordens, getClienteById, getProdutoById } = useApp();
   const [ordemId, setOrdemId] = useState<string | null>(null);
-  const [valor, setValor] = useState('');
-  const [formaPagamento, setFormaPagamento] = useState('');
+  const [valor, setValor] = useState("");
+  const [formaPagamento, setFormaPagamento] = useState("");
   const [showRecibo, setShowRecibo] = useState(false);
   const sigCanvas = useRef<SignatureCanvas>(null);
 
   useEffect(() => {
-    const storedOrdemId = sessionStorage.getItem('currentOrdemId');
+    const storedOrdemId = sessionStorage.getItem("currentOrdemId");
     if (storedOrdemId) {
       setOrdemId(storedOrdemId);
     }
   }, []);
 
-  const ordem = ordemId ? ordens.find(o => o.id === ordemId) : null;
-  const cliente = ordem ? getClienteById(ordem.clienteId) : null;
-  const produto = ordem ? getProdutoById(ordem.produtoId) : null;
+  const ordem = ordemId ? ordens.find((o) => o.id === ordemId) : null;
+  const cliente = ordem ? getClienteById(ordem.id_cliente) : null;
+  //const produto = ordem ? getProdutoById(ordem.id) : null;
 
   const clearSignature = () => {
     sigCanvas.current?.clear();
@@ -30,7 +30,7 @@ export function Retirada() {
     e.preventDefault();
 
     if (!sigCanvas.current || sigCanvas.current.isEmpty()) {
-      alert('Por favor, adicione a assinatura do cliente');
+      alert("Por favor, adicione a assinatura do cliente");
       return;
     }
 
@@ -38,7 +38,7 @@ export function Retirada() {
 
     if (ordem) {
       updateOrdem(ordem.id, {
-        status: 'retirado',
+        status: "retirado",
         valor: parseFloat(valor),
         formaPagamento,
         assinatura,
@@ -49,8 +49,8 @@ export function Retirada() {
   };
 
   const handleFinish = () => {
-    sessionStorage.removeItem('currentOrdemId');
-    setCurrentScreen('copiaChave');
+    sessionStorage.removeItem("currentOrdemId");
+    setCurrentScreen("copiaChave");
   };
 
   if (!ordem || !cliente || !produto) {
@@ -58,7 +58,10 @@ export function Retirada() {
       <div className="min-h-screen bg-gray-50">
         <div className="bg-green-600 text-white p-4 shadow-lg">
           <div className="flex items-center gap-4">
-            <button onClick={() => setCurrentScreen('copiaChave')} className="p-2 hover:bg-green-700 rounded-lg">
+            <button
+              onClick={() => setCurrentScreen("copiaChave")}
+              className="p-2 hover:bg-green-700 rounded-lg"
+            >
               <ArrowLeft className="w-6 h-6" />
             </button>
             <h1>Retirada de Pedido</h1>
@@ -82,7 +85,9 @@ export function Retirada() {
           <div className="bg-white rounded-lg p-6 shadow-lg max-w-md mx-auto">
             <div className="text-center mb-6">
               <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
-              <h2 className="text-gray-800 mb-2">Pedido Retirado com Sucesso!</h2>
+              <h2 className="text-gray-800 mb-2">
+                Pedido Retirado com Sucesso!
+              </h2>
             </div>
 
             <div className="space-y-3 mb-6">
@@ -103,12 +108,14 @@ export function Retirada() {
 
               <div className="border-b pb-2">
                 <p className="text-gray-600">Referência:</p>
-                <p className="text-gray-800">{ordem.chaveOriginal}</p>
+                <p className="text-gray-800">{ordem.observacao}</p>
               </div>
 
               <div className="border-b pb-2">
                 <p className="text-gray-600">Valor Pago:</p>
-                <p className="text-green-600">R$ {parseFloat(valor).toFixed(2)}</p>
+                <p className="text-green-600">
+                  R$ {parseFloat(valor).toFixed(2)}
+                </p>
               </div>
 
               <div className="border-b pb-2">
@@ -119,7 +126,8 @@ export function Retirada() {
               <div className="border-b pb-2">
                 <p className="text-gray-600">Data:</p>
                 <p className="text-gray-800">
-                  {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR')}
+                  {new Date().toLocaleDateString("pt-BR")} às{" "}
+                  {new Date().toLocaleTimeString("pt-BR")}
                 </p>
               </div>
 
@@ -127,7 +135,11 @@ export function Retirada() {
                 <div>
                   <p className="text-gray-600 mb-2">Assinatura do Cliente:</p>
                   <div className="border rounded-lg p-2 bg-gray-50">
-                    <img src={ordem.assinatura} alt="Assinatura" className="w-full" />
+                    <img
+                      src={ordem.assinatura}
+                      alt="Assinatura"
+                      className="w-full"
+                    />
                   </div>
                 </div>
               )}
@@ -154,7 +166,10 @@ export function Retirada() {
     <div className="min-h-screen bg-gray-50">
       <div className="bg-green-600 text-white p-4 shadow-lg">
         <div className="flex items-center gap-4">
-          <button onClick={() => setCurrentScreen('copiaChave')} className="p-2 hover:bg-green-700 rounded-lg">
+          <button
+            onClick={() => setCurrentScreen("copiaChave")}
+            className="p-2 hover:bg-green-700 rounded-lg"
+          >
             <ArrowLeft className="w-6 h-6" />
           </button>
           <h1>Retirada de Pedido</h1>
@@ -165,9 +180,16 @@ export function Retirada() {
         <div className="bg-white rounded-lg p-4 shadow mb-4">
           <h2 className="text-gray-800 mb-4">Informações do Pedido</h2>
           <div className="space-y-2">
-            <p className="text-gray-600">Cliente: <span className="text-gray-800">{cliente.nome}</span></p>
-            <p className="text-gray-600">Produto: <span className="text-gray-800">{produto.nome}</span></p>
-            <p className="text-gray-600">Referência: <span className="text-gray-800">{ordem.chaveOriginal}</span></p>
+            <p className="text-gray-600">
+              Cliente: <span className="text-gray-800">{cliente.nome}</span>
+            </p>
+            <p className="text-gray-600">
+              Produto: <span className="text-gray-800">{produto.nome}</span>
+            </p>
+            <p className="text-gray-600">
+              Referência:{" "}
+              <span className="text-gray-800">{ordem.observacao}</span>
+            </p>
           </div>
         </div>
 
@@ -177,7 +199,9 @@ export function Retirada() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-gray-700 mb-2">Valor Total (R$) *</label>
+                <label className="block text-gray-700 mb-2">
+                  Valor Total (R$) *
+                </label>
                 <input
                   type="number"
                   step="0.01"
@@ -190,7 +214,9 @@ export function Retirada() {
               </div>
 
               <div>
-                <label className="block text-gray-700 mb-2">Forma de Pagamento *</label>
+                <label className="block text-gray-700 mb-2">
+                  Forma de Pagamento *
+                </label>
                 <select
                   value={formaPagamento}
                   onChange={(e) => setFormaPagamento(e.target.value)}
@@ -213,7 +239,7 @@ export function Retirada() {
               <SignatureCanvas
                 ref={sigCanvas}
                 canvasProps={{
-                  className: 'w-full h-40 bg-white',
+                  className: "w-full h-40 bg-white",
                 }}
               />
             </div>

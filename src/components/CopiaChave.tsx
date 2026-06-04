@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ArrowLeft, Plus, Filter, Package, MessageCircle } from "lucide-react";
-import { useApp, StatusOrdem } from "../context/AppContext";
+import { useApp, OrdemServico } from "../context/AppContext";
 import { WhatsAppModal } from "./WhatsAppModal";
 
 export function CopiaChave() {
@@ -16,6 +16,9 @@ export function CopiaChave() {
   } = useApp();
   const [showForm, setShowForm] = useState(false);
 
+  //const [filterStatus, setFilterStatus] = useState<OrdemServico | "all">("all");
+  type StatusOrdem = OrdemServico["status_ordem"];
+
   const [filterStatus, setFilterStatus] = useState<StatusOrdem | "all">("all");
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
   const [selectedOrdemForWhatsApp, setSelectedOrdemForWhatsApp] = useState<
@@ -23,46 +26,62 @@ export function CopiaChave() {
   >(null);
   const [formData, setFormData] = useState({
     clienteId: "",
-    chaveOriginal: "",
-    produtoId: "",
-    status: "pendente" as StatusOrdem,
+    observacao: "",
+    status_ordem: "ABERTA" as OrdemServico["status_ordem"],
   });
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Verificar se há estoque
-    const produto = getProdutoById(formData.produtoId);
-    if (!produto || produto.quantidadeEstoque === 0) {
-      alert("Produto sem estoque disponível!");
-      return;
+    //const produto = getProdutoById(formData.produtoId);
+
+    //{ if (!produto || produto.quantidadeEstoque === 0) {
+    //alert("Produto sem estoque disponível!");
+    //  return;
+    // }
+
+    try {
+      await addOrdem({
+        id_cliente: Number(formData.clienteId),
+        id_empresa: 1, // empresa logada
+        observacao: `Cópia de chave - ${formData.observacao}`,
+        status_ordem: "ABERTA",
+        valor_total: 0,
+      });
+
+      resetForm();
+
+      alert("Ordem de serviço criada com sucesso!");
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao criar ordem de serviço");
     }
-
-    addOrdem(formData);
-    resetForm();
-    alert("Ordem de serviço criada com sucesso! Matriz reservada do estoque.");
   };
-
   const resetForm = () => {
     setFormData({
       clienteId: "",
-      chaveOriginal: "",
-      produtoId: "",
-      status: "pendente",
+      observacao: "",
+      status_ordem: "PENDENTE",
     });
     setShowForm(false);
   };
 
-  const handleStatusChange = (id: string, newStatus: StatusOrdem) => {
-    const ordemAtual = ordens.find((o) => o.id === id);
+  const handleStatusChange = async (
+    id: string,
+    newStatus: OrdemServico["status_ordem"],
+  ) => {
+    const ordemAtual = ordens.find((o) => String(o.id) === id);
 
-    // Se mudou para "pronto", perguntar se quer enviar WhatsApp
-    if (newStatus === "pronto" && ordemAtual?.status !== "pronto") {
-      updateOrdem(id, { status: newStatus });
+    if (newStatus === "PRONTO" && ordemAtual?.status_ordem !== "PRONTO") {
+      await updateOrdem(id, {
+        status_ordem: newStatus,
+      });
+
       setSelectedOrdemForWhatsApp(id);
       setShowWhatsAppModal(true);
     } else {
-      updateOrdem(id, { status: newStatus });
+      await updateOrdem(id, {
+        status_ordem: newStatus,
+      });
     }
   };
 
@@ -81,46 +100,63 @@ export function CopiaChave() {
     sessionStorage.setItem("currentOrdemId", id);
   };
 
-  const getStatusColor = (status: StatusOrdem) => {
-    switch (status) {
-      case "pendente":
+  const getStatusColor = (status_ordem: OrdemServico["status_ordem"]) => {
+    switch (status_ordem) {
+      case "ABERTA":
         return "bg-yellow-100 text-yellow-700";
-      case "em_producao":
+
+      case "EM_ANDAMENTO":
         return "bg-blue-100 text-blue-700";
-      case "pronto":
+
+      case "PRONTO":
         return "bg-green-100 text-green-700";
-      case "retirado":
+
+      case "ENTREGUE":
+        return "bg-gray-100 text-gray-700";
+
+      case "PENDENTE":
+        return "bg-red-100 text-red-700";
+
+      default:
         return "bg-gray-100 text-gray-700";
     }
   };
 
-  const getStatusLabel = (status: StatusOrdem) => {
-    switch (status) {
-      case "pendente":
-        return "Pendente";
-      case "em_producao":
-        return "Em Produção";
-      case "pronto":
-        return "Pronto";
-      case "retirado":
-        return "Retirado";
+  const getStatusLabel = (status_ordem: OrdemServico["status_ordem"]) => {
+    switch (status_ordem) {
+      case "ABERTA":
+        return "ABERTA";
+
+      case "EM_ANDAMENTO":
+        return "EM_ANDAMENTO";
+
+      case "PRONTO":
+        return "PRONTO";
+
+      case "ENTREGUE":
+        return "ENTREGUE";
+
+      case "PENDENTE":
+        return "PENDENTE";
+
+      default:
+        return status_ordem;
     }
   };
-
   const filteredOrdens = ordens.filter(
-    (o) => filterStatus === "all" || o.status === filterStatus,
+    (o) => filterStatus === "all" || o.status_ordem === filterStatus,
   );
 
   const selectedOrdem = selectedOrdemForWhatsApp
-    ? ordens.find((o) => o.id === selectedOrdemForWhatsApp)
-    : null;
-  const selectedCliente = selectedOrdem
-    ? getClienteById(selectedOrdem.clienteId)
-    : null;
-  const selectedProduto = selectedOrdem
-    ? getProdutoById(selectedOrdem.produtoId)
+    ? ordens.find((o) => String(o.id) === selectedOrdemForWhatsApp)
     : null;
 
+  const selectedCliente = selectedOrdem
+    ? getClienteById(String(selectedOrdem.id_cliente))
+    : null;
+
+  // não existe mais produtoId na OS
+  const selectedProduto = null;
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
@@ -135,7 +171,8 @@ export function CopiaChave() {
           <div className="flex-1">
             <h1>Ordens de Serviço</h1>
             <p className="text-blue-100 mt-1">
-              {ordens.filter((o) => o.status !== "retirado").length} aberta(s)
+              {ordens.filter((o) => o.status_ordem !== "ENTREGUE").length}{" "}
+              aberta(s)
             </p>
           </div>
           {!showForm && (
@@ -180,9 +217,9 @@ export function CopiaChave() {
                 </label>
                 <input
                   type="text"
-                  value={formData.chaveOriginal}
+                  value={formData.observacao}
                   onChange={(e) =>
-                    setFormData({ ...formData, chaveOriginal: e.target.value })
+                    setFormData({ ...formData, observacao: e.target.value })
                   }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Ex: YL-1234"
@@ -190,48 +227,53 @@ export function CopiaChave() {
                 />
               </div>
 
-              <div>
-                <label className="block text-gray-700 mb-2">
-                  Tipo de Matriz *
-                </label>
-                <select
-                  value={formData.produtoId}
-                  onChange={(e) =>
-                    setFormData({ ...formData, produtoId: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                >
-                  <option value="">Selecione uma matriz</option>
-                  {produtos.map((produto) => (
-                    <option
-                      key={produto.id}
-                      value={produto.id}
-                      disabled={produto.quantidadeEstoque === 0}
-                    >
-                      {produto.nome} ({produto.codigo}) - Estoque:{" "}
-                      {produto.quantidadeEstoque}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {/*
+<div>
+  <label className="block text-gray-700 mb-2">
+    Tipo de Matriz *
+  </label>
+
+  <select
+    value={formData.produtoId}
+    onChange={(e) =>
+      setFormData({ ...formData, produtoId: e.target.value })
+    }
+    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+    required
+  >
+    <option value="">Selecione uma matriz</option>
+
+    {produtos.map((produto) => (
+      <option
+        key={produto.id}
+        value={produto.id}
+        disabled={produto.quantidadeEstoque === 0}
+      >
+        {produto.nome} ({produto.codigo}) - Estoque:{" "}
+        {produto.quantidadeEstoque}
+      </option>
+    ))}
+  </select>
+</div>
+*/}
 
               <div>
                 <label className="block text-gray-700 mb-2">
                   Status Inicial *
                 </label>
                 <select
-                  value={formData.status}
+                  value={formData.status_ordem}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
-                      status: e.target.value as StatusOrdem,
+                      status_ordem: e.target
+                        .value as OrdemServico["status_ordem"],
                     })
                   }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="pendente">Pendente</option>
-                  <option value="em_producao">Em Produção</option>
+                  <option value="PENDENTE">Pendente</option>
+                  <option value="EM_ANDAMENTO">Em andamento</option>
                 </select>
               </div>
 
@@ -273,9 +315,9 @@ export function CopiaChave() {
                 Todos
               </button>
               <button
-                onClick={() => setFilterStatus("pendente")}
+                onClick={() => setFilterStatus("PENDENTE")}
                 className={`px-4 py-2 rounded-lg whitespace-nowrap ${
-                  filterStatus === "pendente"
+                  filterStatus === "PENDENTE"
                     ? "bg-yellow-600 text-white"
                     : "bg-white text-gray-700 border"
                 }`}
@@ -283,9 +325,9 @@ export function CopiaChave() {
                 Pendente
               </button>
               <button
-                onClick={() => setFilterStatus("em_producao")}
+                onClick={() => setFilterStatus("EM_ANDAMENTO")}
                 className={`px-4 py-2 rounded-lg whitespace-nowrap ${
-                  filterStatus === "em_producao"
+                  filterStatus === "EM_ANDAMENTO"
                     ? "bg-blue-600 text-white"
                     : "bg-white text-gray-700 border"
                 }`}
@@ -293,9 +335,9 @@ export function CopiaChave() {
                 Em Produção
               </button>
               <button
-                onClick={() => setFilterStatus("pronto")}
+                onClick={() => setFilterStatus("PRONTO")}
                 className={`px-4 py-2 rounded-lg whitespace-nowrap ${
-                  filterStatus === "pronto"
+                  filterStatus === "PRONTO"
                     ? "bg-green-600 text-white"
                     : "bg-white text-gray-700 border"
                 }`}
@@ -303,9 +345,9 @@ export function CopiaChave() {
                 Pronto
               </button>
               <button
-                onClick={() => setFilterStatus("retirado")}
+                onClick={() => setFilterStatus("ENTREGUE")}
                 className={`px-4 py-2 rounded-lg whitespace-nowrap ${
-                  filterStatus === "retirado"
+                  filterStatus === "ENTREGUE"
                     ? "bg-gray-600 text-white"
                     : "bg-white text-gray-700 border"
                 }`}
@@ -317,6 +359,7 @@ export function CopiaChave() {
         )}
 
         {/* Lista de Ordens */}
+        {/*
         {!showForm && (
           <div className="space-y-3">
             {filteredOrdens.length === 0 ? (
@@ -333,8 +376,8 @@ export function CopiaChave() {
                     new Date(a.dataCriacao).getTime(),
                 )
                 .map((ordem) => {
-                  const cliente = getClienteById(ordem.clienteId);
-                  const produto = getProdutoById(ordem.produtoId);
+                  //const cliente = getClienteById(ordem.clienteId);
+                 // const produto = getProdutoById(ordem.produtoId);
 
                   return (
                     <div
@@ -348,7 +391,7 @@ export function CopiaChave() {
                           </p>
                           <p className="text-gray-600 mt-1">
                             {produto?.nome || "Produto não encontrado"} - Ref:{" "}
-                            {ordem.chaveOriginal}
+                            {ordem.observacao}
                           </p>
                           <p className="text-gray-500">
                             {new Date(ordem.dataCriacao).toLocaleDateString(
@@ -357,19 +400,19 @@ export function CopiaChave() {
                           </p>
                         </div>
                         <span
-                          className={`px-3 py-1 rounded-full ${getStatusColor(ordem.status)}`}
+                          className={`px-3 py-1 rounded-full ${getStatusColor(ordem.status_ordem)}`}
                         >
-                          {getStatusLabel(ordem.status)}
+                          {getStatusLabel(ordem.status_ordem)}
                         </span>
                       </div>
 
-                      {ordem.status !== "retirado" && (
+                      {ordem.status_ordem !== "ENTREGUE" && (
                         <div className="space-y-2">
                           <label className="block text-gray-700">
                             Atualizar Status:
                           </label>
                           <select
-                            value={ordem.status}
+                            value={ordem.status_ordem}
                             onChange={(e) =>
                               handleStatusChange(
                                 ordem.id,
@@ -378,13 +421,13 @@ export function CopiaChave() {
                             }
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                           >
-                            <option value="pendente">Pendente</option>
-                            <option value="em_producao">Em Produção</option>
-                            <option value="pronto">Pronto para Retirada</option>
+                            <option value="PENDENTE">Pendente</option>
+                            <option value="EM_ANDAMENTO">Em Produção</option>
+                            <option value="PRONTO">Pronto para Retirada</option>
                           </select>
 
                           <div className="flex gap-2">
-                            {ordem.status === "pronto" && (
+                            {ordem.status_ordem === "PRONTO" && (
                               <>
                                 <button
                                   onClick={() => handleWhatsAppSend(ordem.id)}
@@ -413,6 +456,67 @@ export function CopiaChave() {
             )}
           </div>
         )}
+         */}
+
+        {!showForm && (
+          <div className="space-y-3">
+            {filteredOrdens.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                Nenhuma ordem cadastrada
+              </div>
+            ) : (
+              filteredOrdens
+                .sort(
+                  (a, b) =>
+                    new Date(b.data_entrada || "").getTime() -
+                    new Date(a.data_entrada || "").getTime(),
+                )
+                .map((ordem) => {
+                  const cliente = clientes.find(
+                    (c) => c.id === ordem.id_cliente,
+                  );
+
+                  return (
+                    <div
+                      key={ordem.id}
+                      className="bg-white rounded-lg p-4 shadow"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className="text-gray-800 font-medium">
+                            {cliente?.nome ||
+                              cliente?.name ||
+                              "Cliente não encontrado"}
+                          </p>
+
+                          <p className="text-gray-600 mt-1">
+                            {ordem.observacao}
+                          </p>
+
+                          <p className="text-gray-500 text-sm mt-1">
+                            Entrada:{" "}
+                            {ordem.data_entrada
+                              ? new Date(ordem.data_entrada).toLocaleDateString(
+                                  "pt-BR",
+                                )
+                              : "-"}
+                          </p>
+                        </div>
+
+                        <span
+                          className={`px-3 py-1 rounded-full ${getStatusColor(
+                            ordem.status_ordem,
+                          )}`}
+                        >
+                          {getStatusLabel(ordem.status_ordem)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+            )}
+          </div>
+        )}
       </div>
 
       {/* WhatsApp Modal */}
@@ -422,7 +526,7 @@ export function CopiaChave() {
           onClose={handleWhatsAppModalClose}
           onSend={handleWhatsAppModalClose}
           cliente={selectedCliente}
-          produtoNome={selectedProduto.nome}
+          //produtoNome={selectedProduto.nome}
         />
       )}
     </div>

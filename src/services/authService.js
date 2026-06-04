@@ -2,7 +2,9 @@ import api from "./api";
 
 const getNestedValue = (data, keys) => {
   for (const key of keys) {
-    const value = key.split(".").reduce((current, part) => current?.[part], data);
+    const value = key
+      .split(".")
+      .reduce((current, part) => current?.[part], data);
 
     if (value) return value;
   }
@@ -65,6 +67,7 @@ export const login = async (email, senha) => {
 
   if (token) {
     localStorage.setItem("token", token);
+    console.log("TOKEN SALVO", token);
   }
 
   localStorage.setItem("user", JSON.stringify(normalizedUser));
