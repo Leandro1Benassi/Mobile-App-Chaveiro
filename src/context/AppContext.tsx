@@ -275,7 +275,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, senha: string): Promise<boolean> => {
     try {
       const data = await loginApi(email, senha);
-
+      await new Promise((r) => setTimeout(r, 150));
+      console.log("Login  resposta da API", data);
       if (!data.user) {
         console.log("Login sem usuário na resposta da API", data);
         return false;
