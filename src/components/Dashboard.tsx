@@ -26,8 +26,12 @@ export function Dashboard() {
     vendas,
   } = useApp();
 
-  const ordensAbertas = ordens.filter((o) => o.status !== "retirado").length;
-  const ordensProntas = ordens.filter((o) => o.status === "pronto").length;
+  const ordensAbertas = ordens.filter(
+    (o) => o.status_ordem !== "ENTREGUE",
+  ).length;
+  const ordensProntas = ordens.filter(
+    (o) => o.status_ordem === "PRONTO",
+  ).length;
   const produtosBaixoEstoque = produtos.filter((p) => {
     const estoqueAtual = p.quantidadeEstoque ?? p.estoque ?? 0;
     const estoqueMinimo = p.estoqueMinimo ?? p.estoque_min ?? 0;

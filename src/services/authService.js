@@ -15,10 +15,10 @@ const getNestedValue = (data, keys) => {
 export const login = async (email, senha) => {
   const endpoints = ["/usuarios/login"];
   const payloads = [
-    { email, senha },
-    { email, password: senha },
-    { login: email, senha },
-    { username: email, password: senha },
+    {
+      email: email?.trim(),
+      senha: senha?.trim(),
+    },
   ];
   let response;
   let lastError;
