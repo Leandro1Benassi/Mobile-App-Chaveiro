@@ -1,5 +1,13 @@
 import { useState } from "react";
-import { ArrowLeft, Plus, Filter, Package, MessageCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  Plus,
+  Filter,
+  Package,
+  MessageCircle,
+  Printer,
+  Wrench,
+} from "lucide-react";
 import { useApp, OrdemServico } from "../context/AppContext";
 import { WhatsAppModal } from "./WhatsAppModal";
 
@@ -100,6 +108,168 @@ export function CopiaChave() {
     sessionStorage.setItem("currentOrdemId", id);
   };
 
+  const formatDate = (date?: string) => {
+    if (!date) return "-";
+
+    return new Date(date).toLocaleDateString("pt-BR");
+  };
+
+  const escapeHtml = (value: string) =>
+    value
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+
+  const handlePrintOrdem = (ordem: OrdemServico) => {
+    const cliente = clientes.find((c) => c.id === ordem.id_cliente);
+    const clienteNome =
+      cliente?.nome || cliente?.name || "Cliente não encontrado";
+    const clienteTelefone = cliente?.telefone || cliente?.tel || "-";
+    const observacao = ordem.observacao || "-";
+    const printableWindow = window.open("", "_blank", "width=800,height=900");
+
+    if (!printableWindow) {
+      alert("Não foi possível abrir a janela de impressão.");
+      return;
+    }
+
+    printableWindow.document.write(`
+      <!doctype html>
+      <html lang="pt-BR">
+        <head>
+          <meta charset="utf-8" />
+          <title>Ordem de Serviço #${ordem.id}</title>
+          <style>
+            * { box-sizing: border-box; }
+            body {
+              margin: 0;
+              padding: 32px;
+              color: #111827;
+              font-family: Arial, sans-serif;
+              background: #ffffff;
+            }
+            .page {
+              max-width: 720px;
+              margin: 0 auto;
+              border: 1px solid #d1d5db;
+              border-radius: 8px;
+              padding: 28px;
+            }
+            .header {
+              display: flex;
+              justify-content: space-between;
+              gap: 16px;
+              border-bottom: 2px solid #2563eb;
+              padding-bottom: 16px;
+              margin-bottom: 24px;
+            }
+            h1 { margin: 0; font-size: 24px; }
+            .company { color: #2563eb; font-weight: 700; margin-top: 4px; }
+            .badge {
+              border: 1px solid #d1d5db;
+              border-radius: 999px;
+              padding: 8px 12px;
+              font-size: 12px;
+              font-weight: 700;
+              height: fit-content;
+            }
+            .grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 16px;
+            }
+            .field {
+              border-bottom: 1px solid #e5e7eb;
+              padding-bottom: 10px;
+            }
+            .field.full { grid-column: 1 / -1; }
+            .label {
+              color: #6b7280;
+              font-size: 12px;
+              margin-bottom: 4px;
+              text-transform: uppercase;
+            }
+            .value { font-size: 16px; }
+            .signature {
+              margin-top: 56px;
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 32px;
+            }
+            .line {
+              border-top: 1px solid #111827;
+              padding-top: 8px;
+              text-align: center;
+              color: #374151;
+              font-size: 13px;
+            }
+            @media print {
+              body { padding: 0; }
+              .page { border: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <main class="page">
+            <section class="header">
+              <div>
+                <h1>Ordem de Serviço #${ordem.id}</h1>
+                <div class="company">Chaves Alves</div>
+              </div>
+              <div class="badge">${getStatusLabel(ordem.status_ordem)}</div>
+            </section>
+
+            <section class="grid">
+              <div class="field">
+                <div class="label">Cliente</div>
+                <div class="value">${escapeHtml(clienteNome)}</div>
+              </div>
+              <div class="field">
+                <div class="label">Telefone</div>
+                <div class="value">${escapeHtml(clienteTelefone)}</div>
+              </div>
+              <div class="field">
+                <div class="label">Entrada</div>
+                <div class="value">${formatDate(ordem.data_entrada)}</div>
+              </div>
+              <div class="field">
+                <div class="label">Entrega</div>
+                <div class="value">${formatDate(ordem.data_entrega)}</div>
+              </div>
+              <div class="field">
+                <div class="label">Valor total</div>
+                <div class="value">R$ ${Number(ordem.valor_total || 0).toFixed(2)}</div>
+              </div>
+              <div class="field">
+                <div class="label">Status</div>
+                <div class="value">${getStatusLabel(ordem.status_ordem)}</div>
+              </div>
+              <div class="field full">
+                <div class="label">Observação</div>
+                <div class="value">${escapeHtml(observacao)}</div>
+              </div>
+            </section>
+
+            <section class="signature">
+              <div class="line">Assinatura do cliente</div>
+              <div class="line">Responsável</div>
+            </section>
+          </main>
+          <script>
+            window.onload = () => {
+              window.print();
+              window.onafterprint = () => window.close();
+            };
+          </script>
+        </body>
+      </html>
+    `);
+
+    printableWindow.document.close();
+  };
+
   const getStatusColor = (status_ordem: OrdemServico["status_ordem"]) => {
     switch (status_ordem) {
       case "ABERTA":
@@ -168,7 +338,8 @@ export function CopiaChave() {
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <div className="flex-1">
+          <div className="flex-1 relative pl-8">
+            <Wrench className="absolute left-0 top-0.5 w-6 h-6" />
             <h1>Ordens de Serviço</h1>
             <p className="text-blue-100 mt-1">
               {ordens.filter((o) => o.status_ordem !== "ENTREGUE").length}{" "}
@@ -482,12 +653,15 @@ export function CopiaChave() {
                       className="bg-white rounded-lg p-4 shadow"
                     >
                       <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <p className="text-gray-800 font-medium">
+                        <div className="flex-1 pr-3">
+                          <div className="flex items-center gap-2">
+                            <Wrench className="w-5 h-5 text-blue-600" />
+                            <p className="text-gray-800 font-medium">
                             {cliente?.nome ||
                               cliente?.name ||
                               "Cliente não encontrado"}
-                          </p>
+                            </p>
+                          </div>
 
                           <p className="text-gray-600 mt-1">
                             {ordem.observacao}
@@ -510,6 +684,17 @@ export function CopiaChave() {
                         >
                           {getStatusLabel(ordem.status_ordem)}
                         </span>
+                      </div>
+
+                      <div className="mt-4 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => handlePrintOrdem(ordem)}
+                          className="inline-flex items-center gap-2 rounded-lg bg-gray-100 px-3 py-2 text-gray-700 hover:bg-gray-200"
+                        >
+                          <Printer className="w-4 h-4" />
+                          Imprimir
+                        </button>
                       </div>
                     </div>
                   );
