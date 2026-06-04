@@ -1,5 +1,5 @@
 {
   "appId": "com.chaveiropro.app",
   "appName": "Chaveiro pro",
-  "webDir": "build"
+  "webDir": "dist"
 }
