@@ -32,7 +32,7 @@ export function Logo({
   };
 
   // Define qual imagem usar: a enviada por propriedade ou a sua logo padrão
-  const finalImageSrc = imageSrc || "/LOGO.JPEG";
+  const finalImageSrc = imageSrc || "/img/LOGO.jpeg";
 
   return (
     <div className="flex items-center gap-3">

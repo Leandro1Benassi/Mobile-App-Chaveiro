@@ -1,5 +1,7 @@
 import api, { setAuthToken } from "./api";
-
+export const loginWithGoogle = async () => {
+  throw new Error("Login com Google não implementado ainda");
+};
 export const login = async (email, senha) => {
   try {
     const response = await api.post("/usuarios/login", {
