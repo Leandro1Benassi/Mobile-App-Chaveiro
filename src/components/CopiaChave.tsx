@@ -338,8 +338,7 @@ export function CopiaChave() {
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <div className="flex-1 relative pl-8">
-            <Wrench className="absolute left-0 top-0.5 w-6 h-6" />
+          <div className="flex-1">
             <h1>Ordens de Serviço</h1>
             <p className="text-blue-100 mt-1">
               {ordens.filter((o) => o.status_ordem !== "ENTREGUE").length}{" "}
@@ -477,51 +476,46 @@ export function CopiaChave() {
             <div className="flex gap-2 overflow-x-auto pb-2">
               <button
                 onClick={() => setFilterStatus("all")}
-                className={`px-4 py-2 rounded-lg whitespace-nowrap ${
-                  filterStatus === "all"
+                className={`px-4 py-2 rounded-lg whitespace-nowrap ${filterStatus === "all"
                     ? "bg-blue-600 text-white"
                     : "bg-white text-gray-700 border"
-                }`}
+                  }`}
               >
                 Todos
               </button>
               <button
                 onClick={() => setFilterStatus("PENDENTE")}
-                className={`px-4 py-2 rounded-lg whitespace-nowrap ${
-                  filterStatus === "PENDENTE"
+                className={`px-4 py-2 rounded-lg whitespace-nowrap ${filterStatus === "PENDENTE"
                     ? "bg-yellow-600 text-white"
                     : "bg-white text-gray-700 border"
-                }`}
+                  }`}
               >
                 Pendente
               </button>
               <button
                 onClick={() => setFilterStatus("EM_ANDAMENTO")}
-                className={`px-4 py-2 rounded-lg whitespace-nowrap ${
-                  filterStatus === "EM_ANDAMENTO"
+                className={`px-4 py-2 rounded-lg whitespace-nowrap ${filterStatus === "EM_ANDAMENTO"
                     ? "bg-blue-600 text-white"
                     : "bg-white text-gray-700 border"
-                }`}
+                  }`}
               >
                 Em Produção
               </button>
               <button
                 onClick={() => setFilterStatus("PRONTO")}
-                className={`px-4 py-2 rounded-lg whitespace-nowrap ${
-                  filterStatus === "PRONTO"
+                className={`px-4 py-2 rounded-lg whitespace-nowrap ${filterStatus === "PRONTO"
                     ? "bg-green-600 text-white"
                     : "bg-white text-gray-700 border"
-                }`}
+                  }`}
               >
                 Pronto
               </button>
               <button
                 onClick={() => setFilterStatus("ENTREGUE")}
-                className={`px-4 py-2 rounded-lg whitespace-nowrap ${
-                  filterStatus === "ENTREGUE"
+                className={`px-4 py-2 rounded-lg whitespace-nowrap ${filterStatus === "ENTREGUE"
                     ? "bg-gray-600 text-white"
                     : "bg-white text-gray-700 border"
-                }`}
+                  }`}
               >
                 Retirado
               </button>
@@ -657,9 +651,9 @@ export function CopiaChave() {
                           <div className="flex items-center gap-2">
                             <Wrench className="w-5 h-5 text-blue-600" />
                             <p className="text-gray-800 font-medium">
-                            {cliente?.nome ||
-                              cliente?.name ||
-                              "Cliente não encontrado"}
+                              {cliente?.nome ||
+                                cliente?.name ||
+                                "Cliente não encontrado"}
                             </p>
                           </div>
 
@@ -671,8 +665,8 @@ export function CopiaChave() {
                             Entrada:{" "}
                             {ordem.data_entrada
                               ? new Date(ordem.data_entrada).toLocaleDateString(
-                                  "pt-BR",
-                                )
+                                "pt-BR",
+                              )
                               : "-"}
                           </p>
                         </div>
@@ -711,7 +705,7 @@ export function CopiaChave() {
           onClose={handleWhatsAppModalClose}
           onSend={handleWhatsAppModalClose}
           cliente={selectedCliente}
-          //produtoNome={selectedProduto.nome}
+        //produtoNome={selectedProduto.nome}
         />
       )}
     </div>
