@@ -3,14 +3,21 @@ import axios from "axios";
 export const API_BASE_URL = "https://api.bennaweb.com";
 export const UPLOADS_URL = `${API_BASE_URL}/uploads`;
 
-//  cache em memória (ESSENCIAL no Android)
+// Cache em memória (ajuda em dispositivos móveis)
 let cachedToken = null;
 
+// Salva ou remove token
 export const setAuthToken = (token) => {
   cachedToken = token;
-  localStorage.setItem("token", token);
+
+  if (token) {
+    localStorage.setItem("token", token);
+  } else {
+    localStorage.removeItem("token");
+  }
 };
 
+// Recupera token
 export const getAuthToken = () => {
   return cachedToken || localStorage.getItem("token");
 };
@@ -19,22 +26,47 @@ const api = axios.create({
   baseURL: API_BASE_URL,
 });
 
-// interceptor
-api.interceptors.request.use((config) => {
-  const token = getAuthToken();
+// Carrega token ao iniciar aplicação
+cachedToken = localStorage.getItem("token");
 
-  // NÃO interceptar login
-  if (config.url?.includes("/usuarios/login")) {
+// Interceptor para adicionar Bearer Token
+api.interceptors.request.use(
+  (config) => {
+    const token = getAuthToken();
+
+    // Rotas públicas
+    if (
+      config.url?.includes("/usuarios/login") ||
+      config.url?.includes("/usuarios/register")
+    ) {
+      return config;
+    }
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
     return config;
-  }
+  },
+  (error) => Promise.reject(error),
+);
 
-  console.log("AUTH TOKEN:", token);
+// Interceptor para tratar token expirado
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error?.response?.status === 401) {
+      console.warn("Sessão expirada");
 
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+      setAuthToken(null);
+      localStorage.removeItem("user");
 
-  return config;
-});
+      // opcional:
+      // window.location.href = "/login";
+    }
+
+    return Promise.reject(error);
+  },
+);
 
 export default api;

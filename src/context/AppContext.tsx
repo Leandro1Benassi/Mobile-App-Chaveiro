@@ -8,6 +8,7 @@ import {
 
 import {
   login as loginApi,
+  loginWithGoogle,
   loginWithGoogle as loginWithGoogleApi,
 } from "../services/authService";
 import clienteService from "../services/clientesService";
@@ -129,7 +130,7 @@ interface AppContextType {
   ordens: OrdemServico[];
   vendas: Venda[];
   login: (email: string, senha: string) => Promise<boolean>;
-  loginWithGoogle: () => void;
+  loginWithGoogle: (token: string) => Promise<boolean>;
   cadastro: (
     newUser: Omit<User, "id" | "nivel" | "role">,
     senha: string,
@@ -251,9 +252,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const hashParams = new URLSearchParams(
+      window.location.hash.replace(/^#/, ""),
+    );
     const params = new URLSearchParams([...urlParams, ...hashParams]);
-    const token = getUrlAuthParam(params, ["token", "access_token", "accessToken"]);
+    const token = getUrlAuthParam(params, [
+      "token",
+      "access_token",
+      "accessToken",
+    ]);
 
     if (token) {
       const oauthUser = normalizeUser(parseOAuthUser(params) || {});
@@ -274,7 +281,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setCurrentScreen("dashboard");
     }
   }, []);
+  const loginWithGoogle = async (googleToken: string) => {
+    try {
+      const data = await loginWithGoogleApi(googleToken);
 
+      console.log("LOGIN GOOGLE OK", data);
+
+      const user = normalizeUser(data.user);
+
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(user));
+
+      setCurrentUser(user);
+      setCurrentScreen("dashboard");
+
+      return true;
+    } catch (error) {
+      console.log("Erro login Google", error);
+      return false;
+    }
+  };
   useEffect(() => {
     if (!isAuthenticated) return;
     async function carregarClientes() {
@@ -347,10 +373,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       console.log(error);
       return false;
     }
-  };
-
-  const loginWithGoogle = () => {
-    loginWithGoogleApi();
   };
 
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState } from "react";
 import {
   ArrowLeft,
   Building2,
@@ -13,8 +13,8 @@ import {
   Search,
   Trash2,
   UserRound,
-} from 'lucide-react';
-import { useApp } from '../context/AppContext';
+} from "lucide-react";
+import { useApp } from "../context/AppContext";
 import {
   formatCpfCnpj,
   formatPhone,
@@ -22,9 +22,9 @@ import {
   isValidEmail,
   isValidPhone,
   validateCpfCnpj,
-} from '../utils/contactValidation';
+} from "../utils/contactValidation";
 
-type CepStatus = 'idle' | 'loading' | 'success' | 'error';
+type CepStatus = "idle" | "loading" | "success" | "error";
 
 interface ViaCepResponse {
   cep: string;
@@ -40,55 +40,57 @@ export function PerfilUsuario() {
   const { currentUser, setCurrentScreen, updateCurrentUser } = useApp();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
-    nome: currentUser?.nome || '',
-    documento: formatCpfCnpj(currentUser?.documento || ''),
-    telefone: formatPhone(currentUser?.telefone || ''),
-    email: currentUser?.email || '',
-    cep: currentUser?.cep || '',
-    endereco: currentUser?.endereco || '',
-    numero: currentUser?.numero || '',
-    complemento: currentUser?.complemento || '',
-    bairro: currentUser?.bairro || '',
-    cidade: currentUser?.cidade || '',
-    estado: currentUser?.estado || '',
+    nome: currentUser?.nome || "",
+    documento: formatCpfCnpj(currentUser?.documento || ""),
+    telefone: formatPhone(currentUser?.telefone || ""),
+    email: currentUser?.email || "",
+    cep: currentUser?.cep || "",
+    endereco: currentUser?.endereco || "",
+    numero: currentUser?.numero || "",
+    complemento: currentUser?.complemento || "",
+    bairro: currentUser?.bairro || "",
+    cidade: currentUser?.cidade || "",
+    estado: currentUser?.estado || "",
   });
-  const [cepStatus, setCepStatus] = useState<CepStatus>('idle');
-  const [message, setMessage] = useState('');
-  const [photoError, setPhotoError] = useState('');
+  const [cepStatus, setCepStatus] = useState<CepStatus>("idle");
+  const [message, setMessage] = useState("");
+  const [photoError, setPhotoError] = useState("");
 
   const updateField = (field: keyof typeof formData, value: string) => {
     const formattedValue =
-      field === 'documento'
+      field === "documento"
         ? formatCpfCnpj(value)
-        : field === 'telefone'
+        : field === "telefone"
           ? formatPhone(value)
           : value;
 
-    setFormData(prev => ({ ...prev, [field]: formattedValue }));
-    if (message) setMessage('');
+    setFormData((prev) => ({ ...prev, [field]: formattedValue }));
+    if (message) setMessage("");
   };
 
   const buscarCep = async () => {
-    const cleanCep = formData.cep.replace(/\D/g, '');
+    const cleanCep = formData.cep.replace(/\D/g, "");
 
     if (cleanCep.length !== 8) {
-      setCepStatus('error');
-      setMessage('Digite um CEP com 8 números.');
+      setCepStatus("error");
+      setMessage("Digite um CEP com 8 números.");
       return;
     }
 
-    setCepStatus('loading');
-    setMessage('');
+    setCepStatus("loading");
+    setMessage("");
 
     try {
-      const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
-      const data = await response.json() as ViaCepResponse;
+      const response = await fetch(
+        `https://viacep.com.br/ws/${cleanCep}/json/`,
+      );
+      const data = (await response.json()) as ViaCepResponse;
 
       if (!response.ok || data.erro) {
-        throw new Error('CEP não encontrado');
+        throw new Error("CEP não encontrado");
       }
 
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         cep: data.cep,
         endereco: data.logradouro,
@@ -97,11 +99,11 @@ export function PerfilUsuario() {
         cidade: data.localidade,
         estado: data.uf,
       }));
-      setCepStatus('success');
-      setMessage('Endereço preenchido pelo CEP.');
+      setCepStatus("success");
+      setMessage("Endereço preenchido pelo CEP.");
     } catch {
-      setCepStatus('error');
-      setMessage('Não foi possível buscar o CEP agora.');
+      setCepStatus("error");
+      setMessage("Não foi possível buscar o CEP agora.");
     }
   };
 
@@ -113,36 +115,40 @@ export function PerfilUsuario() {
     const email = formData.email.trim();
 
     if (documento && !validateCpfCnpj(documento)) {
-      setCepStatus('error');
-      setMessage(`${getCpfCnpjLabel(documento)} invalido. Verifique os numeros digitados.`);
+      setCepStatus("error");
+      setMessage(
+        `${getCpfCnpjLabel(documento)} invalido. Verifique os numeros digitados.`,
+      );
       return;
     }
 
     if (telefone && !isValidPhone(telefone)) {
-      setCepStatus('error');
-      setMessage('Telefone invalido. Use DDD + numero com 10 ou 11 digitos.');
+      setCepStatus("error");
+      setMessage("Telefone invalido. Use DDD + numero com 10 ou 11 digitos.");
       return;
     }
 
     if (!isValidEmail(email)) {
-      setCepStatus('error');
-      setMessage('Email invalido. Verifique o endereco digitado.');
+      setCepStatus("error");
+      setMessage("Email invalido. Verifique o endereco digitado.");
       return;
     }
 
     updateCurrentUser(formData);
-    setCepStatus('success');
-    setMessage('Perfil atualizado com sucesso.');
+    setCepStatus("success");
+    setMessage("Perfil atualizado com sucesso.");
   };
 
-  const handleProfilePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProfilePhotoUpload = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
 
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      setPhotoError('Selecione um arquivo de imagem.');
-      event.target.value = '';
+    if (!file.type.startsWith("image/")) {
+      setPhotoError("Selecione um arquivo de imagem.");
+      event.target.value = "";
       return;
     }
 
@@ -150,32 +156,35 @@ export function PerfilUsuario() {
 
     reader.onload = () => {
       updateCurrentUser({ fotoPerfil: String(reader.result) });
-      setPhotoError('');
-      setCepStatus('success');
-      setMessage('Foto de perfil atualizada.');
-      event.target.value = '';
+      setPhotoError("");
+      setCepStatus("success");
+      setMessage("Foto de perfil atualizada.");
+      event.target.value = "";
     };
 
     reader.onerror = () => {
-      setPhotoError('Não foi possível carregar a foto.');
-      event.target.value = '';
+      setPhotoError("Não foi possível carregar a foto.");
+      event.target.value = "";
     };
 
     reader.readAsDataURL(file);
   };
 
   const removeProfilePhoto = () => {
-    updateCurrentUser({ fotoPerfil: '' });
-    setPhotoError('');
-    setCepStatus('success');
-    setMessage('Foto de perfil removida.');
+    updateCurrentUser({ fotoPerfil: "" });
+    setPhotoError("");
+    setCepStatus("success");
+    setMessage("Foto de perfil removida.");
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-blue-600 text-white p-4 shadow-lg">
         <div className="flex items-center gap-4">
-          <button onClick={() => setCurrentScreen('dashboard')} className="p-2 hover:bg-blue-700 rounded-lg">
+          <button
+            onClick={() => setCurrentScreen("dashboard")}
+            className="p-2 hover:bg-blue-700 rounded-lg"
+          >
             <ArrowLeft className="w-6 h-6" />
           </button>
           <div className="flex-1">
@@ -190,7 +199,7 @@ export function PerfilUsuario() {
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <img
-                src={currentUser?.fotoPerfil || '/sem-foto.png'}
+                src={currentUser?.fotoPerfil || "/sem-foto.png"}
                 alt="Foto de perfil"
                 className="w-20 h-20 rounded-full object-cover border border-gray-200 bg-gray-100"
               />
@@ -199,12 +208,14 @@ export function PerfilUsuario() {
                   <Camera className="w-5 h-5 text-blue-600" />
                   <h2>Foto de perfil</h2>
                 </div>
-                <p className="text-gray-500 text-sm mt-1">{currentUser?.email}</p>
+                <p className="text-gray-500 text-sm mt-1">
+                  {currentUser?.email}
+                </p>
               </div>
             </div>
 
             <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm">
-              {currentUser?.nivel === 'admin' ? 'Administrador' : 'Operador'}
+              {currentUser?.nivel === "admin" ? "Administrador" : "Operador"}
             </span>
           </div>
 
@@ -243,7 +254,10 @@ export function PerfilUsuario() {
           )}
         </section>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg p-4 shadow space-y-4">
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white rounded-lg p-4 shadow space-y-4"
+        >
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block text-gray-700">
               Nome completo
@@ -251,7 +265,7 @@ export function PerfilUsuario() {
                 <UserRound className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   value={formData.nome}
-                  onChange={(e) => updateField('nome', e.target.value)}
+                  onChange={(e) => updateField("nome", e.target.value)}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
@@ -264,7 +278,7 @@ export function PerfilUsuario() {
                 <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   value={formData.documento}
-                  onChange={(e) => updateField('documento', e.target.value)}
+                  onChange={(e) => updateField("documento", e.target.value)}
                   placeholder="000.000.000-00 ou 00.000.000/0000-00"
                   inputMode="numeric"
                   maxLength={18}
@@ -280,7 +294,7 @@ export function PerfilUsuario() {
                 <input
                   type="tel"
                   value={formData.telefone}
-                  onChange={(e) => updateField('telefone', e.target.value)}
+                  onChange={(e) => updateField("telefone", e.target.value)}
                   placeholder="(11) 98765-4321"
                   inputMode="tel"
                   maxLength={15}
@@ -296,7 +310,7 @@ export function PerfilUsuario() {
                 <input
                   type="email"
                   value={formData.email}
-                  onChange={(e) => updateField('email', e.target.value)}
+                  onChange={(e) => updateField("email", e.target.value)}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
@@ -312,18 +326,22 @@ export function PerfilUsuario() {
                 <div className="flex gap-2 mt-2">
                   <input
                     value={formData.cep}
-                    onChange={(e) => updateField('cep', e.target.value)}
+                    onChange={(e) => updateField("cep", e.target.value)}
                     placeholder="00000-000"
                     className="min-w-0 flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <button
                     type="button"
                     onClick={buscarCep}
-                    disabled={cepStatus === 'loading'}
+                    disabled={cepStatus === "loading"}
                     className="w-12 h-12 flex items-center justify-center bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-70"
                     title="Buscar CEP"
                   >
-                    {cepStatus === 'loading' ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
+                    {cepStatus === "loading" ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Search className="w-5 h-5" />
+                    )}
                   </button>
                 </div>
               </label>
@@ -334,7 +352,7 @@ export function PerfilUsuario() {
                   <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     value={formData.endereco}
-                    onChange={(e) => updateField('endereco', e.target.value)}
+                    onChange={(e) => updateField("endereco", e.target.value)}
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -344,7 +362,7 @@ export function PerfilUsuario() {
                 Número
                 <input
                   value={formData.numero}
-                  onChange={(e) => updateField('numero', e.target.value)}
+                  onChange={(e) => updateField("numero", e.target.value)}
                   className="w-full mt-2 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </label>
@@ -353,7 +371,7 @@ export function PerfilUsuario() {
                 Bairro
                 <input
                   value={formData.bairro}
-                  onChange={(e) => updateField('bairro', e.target.value)}
+                  onChange={(e) => updateField("bairro", e.target.value)}
                   className="w-full mt-2 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </label>
@@ -362,7 +380,7 @@ export function PerfilUsuario() {
                 Complemento
                 <input
                   value={formData.complemento}
-                  onChange={(e) => updateField('complemento', e.target.value)}
+                  onChange={(e) => updateField("complemento", e.target.value)}
                   className="w-full mt-2 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </label>
@@ -371,7 +389,7 @@ export function PerfilUsuario() {
                 Cidade
                 <input
                   value={formData.cidade}
-                  onChange={(e) => updateField('cidade', e.target.value)}
+                  onChange={(e) => updateField("cidade", e.target.value)}
                   className="w-full mt-2 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </label>
@@ -380,7 +398,9 @@ export function PerfilUsuario() {
                 Estado
                 <input
                   value={formData.estado}
-                  onChange={(e) => updateField('estado', e.target.value.toUpperCase())}
+                  onChange={(e) =>
+                    updateField("estado", e.target.value.toUpperCase())
+                  }
                   maxLength={2}
                   className="w-full mt-2 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
@@ -389,10 +409,14 @@ export function PerfilUsuario() {
           </div>
 
           {message && (
-            <div className={`rounded-lg px-4 py-3 flex items-center gap-2 ${
-              cepStatus === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-green-50 text-green-700 border border-green-200'
-            }`}>
-              {cepStatus !== 'error' && <CheckCircle2 className="w-5 h-5" />}
+            <div
+              className={`rounded-lg px-4 py-3 flex items-center gap-2 ${
+                cepStatus === "error"
+                  ? "bg-red-50 text-red-700 border border-red-200"
+                  : "bg-green-50 text-green-700 border border-green-200"
+              }`}
+            >
+              {cepStatus !== "error" && <CheckCircle2 className="w-5 h-5" />}
               <span>{message}</span>
             </div>
           )}
