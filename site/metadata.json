@@ -1,0 +1,6 @@
+{
+  "name": "Chaveiro Pro",
+  "description": "Website profissional de chaveiro com atendimento de emergência 24h, agendamento de serviços, catálogo interativo de chaves e sistema de assinatura digital.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
