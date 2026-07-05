@@ -46,6 +46,38 @@ export function CopiaChave() {
     observacao: "",
     status_ordem: "ABERTA" as OrdemServico["status_ordem"],
   });
+
+  const handleAddNewCliente = async () => {
+    const nomeCliente = newClienteData.nome.trim();
+    const telefoneCliente = newClienteData.telefone.trim();
+
+    if (!nomeCliente) {
+      alert("Informe o nome do cliente para cadastrar.");
+      return;
+    }
+
+    try {
+      const clienteCriado = await addCliente({
+        nome: nomeCliente,
+        telefone: telefoneCliente,
+        name: nomeCliente,
+        tel: telefoneCliente,
+        cpf: "",
+        email: "",
+        endereco: "",
+        cep: "",
+      });
+
+      setFormData((prev) => ({ ...prev, clienteId: String(clienteCriado.id) }));
+      setShowNewClienteForm(false);
+      setNewClienteData({ nome: "", telefone: "" });
+      alert("Cliente cadastrado com sucesso!");
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao cadastrar cliente");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -462,6 +494,14 @@ export function CopiaChave() {
                       placeholder="Telefone / WhatsApp"
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
+
+                    <button
+                      type="button"
+                      onClick={handleAddNewCliente}
+                      className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                    >
+                      Adicionar
+                    </button>
                   </div>
                 )}
               </div>
