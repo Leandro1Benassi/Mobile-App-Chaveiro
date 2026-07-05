@@ -56,10 +56,13 @@ function ToggleRow({
       <button
         type="button"
         onClick={() => onChange(!checked)}
-        className={`w-12 h-7 rounded-full p-1 transition-colors flex-shrink-0 ${checked ? 'bg-blue-600' : 'bg-gray-300'}`}
         aria-pressed={checked}
+        className={`w-12 h-7 rounded-full p-1 transition-all duration-300 ease-out flex-shrink-0 ${checked ? 'bg-blue-600' : 'bg-gray-300'}`}
+        style={{ touchAction: 'manipulation' }}
       >
-        <span className={`block w-5 h-5 bg-white rounded-full shadow transition-transform ${checked ? 'translate-x-5' : 'translate-x-0'}`} />
+        <span
+          className={`block w-5 h-5 bg-white rounded-full shadow transition-transform duration-300 ease-out ${checked ? 'translate-x-5' : 'translate-x-0'}`}
+        />
       </button>
     </div>
   );

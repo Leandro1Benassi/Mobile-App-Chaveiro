@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, Plus, Edit2, Trash2, Search, Eye } from "lucide-react";
+import { ArrowLeft, Plus, Edit2, Trash2, Search } from "lucide-react";
 import { useApp } from "../context/AppContext";
 
 import { ToastContainer, toast } from "react-toastify";
@@ -11,7 +11,6 @@ import {
   atualizarServicos,
   deletarServicos,
 } from "../services/servicosService";
-import { ProdutosServicosModal } from "./ProdutosServicosModal";
 
 type Servico = {
   id: string;
@@ -26,8 +25,6 @@ export function CadastroServicos() {
   const [servicos, setServicos] = useState<Servico[]>([]);
 
   const [showForm, setShowForm] = useState(false);
-
-  const [showModal, setShowModal] = useState(false);
 
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -205,14 +202,6 @@ export function CadastroServicos() {
             </p>
           </div>
 
-          <button
-            onClick={() => setShowModal(true)}
-            className="p-2 hover:bg-indigo-700 rounded-lg"
-            title="Ver produtos e serviços"
-          >
-            <Eye className="w-6 h-6" />
-          </button>
-
           {!showForm && (
             <button
               onClick={() => setShowForm(true)}
@@ -360,11 +349,6 @@ export function CadastroServicos() {
           </div>
         )}
       </div>
-
-      <ProdutosServicosModal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-      />
     </div>
   );
 }

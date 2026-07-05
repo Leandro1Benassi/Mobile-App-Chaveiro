@@ -138,7 +138,7 @@ interface AppContextType {
   updateCurrentUser: (user: Partial<User>) => void;
   logout: () => void;
   setCurrentScreen: (screen: Screen) => void;
-  addCliente: (cliente: Omit<Cliente, "id">) => void;
+  addCliente: (cliente: Omit<Cliente, "id">) => Promise<Cliente>;
   updateCliente: (id: string, cliente: Partial<Cliente>) => void;
   deleteCliente: (id: string) => void;
   addProduto: (produto: Omit<Produto, "id">) => void;
@@ -434,9 +434,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setCurrentScreen("login");
   };
 
-  const addCliente = (cliente: Omit<Cliente, "id">) => {
-    const newCliente = { ...cliente, id: Date.now().toString() };
-    setClientes((prev) => [...prev, newCliente]);
+  const addCliente = async (cliente: Omit<Cliente, "id">) => {
+    const payload = {
+      ...cliente,
+      nome: cliente.nome ?? cliente.name ?? "",
+      telefone: cliente.telefone ?? cliente.tel ?? "",
+      name: cliente.name ?? cliente.nome ?? "",
+      tel: cliente.tel ?? cliente.telefone ?? "",
+    };
+
+    try {
+      const created = await clienteService.criarCliente(payload);
+      const newCliente = {
+        ...payload,
+        id: Number(created?.id ?? Date.now()),
+      } as Cliente;
+
+      setClientes((prev) => [...prev, newCliente]);
+      return newCliente;
+    } catch (error) {
+      console.log("Erro ao criar cliente", error);
+      const fallbackCliente = {
+        ...payload,
+        id: Number(Date.now()),
+      } as Cliente;
+
+      setClientes((prev) => [...prev, fallbackCliente]);
+      return fallbackCliente;
+    }
   };
 
   const updateCliente = (id: string, cliente: Partial<Cliente>) => {

@@ -7,9 +7,11 @@ import {
   MessageCircle,
   Printer,
   Wrench,
+  Eye,
 } from "lucide-react";
 import { useApp, OrdemServico } from "../context/AppContext";
 import { WhatsAppModal } from "./WhatsAppModal";
+import { ProdutosServicosModal } from "./ProdutosServicosModal";
 
 export function CopiaChave() {
   const {
@@ -21,8 +23,15 @@ export function CopiaChave() {
     updateOrdem,
     getClienteById,
     getProdutoById,
+    addCliente,
   } = useApp();
   const [showForm, setShowForm] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [showNewClienteForm, setShowNewClienteForm] = useState(false);
+  const [newClienteData, setNewClienteData] = useState({
+    nome: "",
+    telefone: "",
+  });
 
   //const [filterStatus, setFilterStatus] = useState<OrdemServico | "all">("all");
   type StatusOrdem = OrdemServico["status_ordem"];
@@ -40,17 +49,40 @@ export function CopiaChave() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    //const produto = getProdutoById(formData.produtoId);
-
-    //{ if (!produto || produto.quantidadeEstoque === 0) {
-    //alert("Produto sem estoque disponível!");
-    //  return;
-    // }
-
     try {
+      let clienteId = formData.clienteId;
+
+      if (showNewClienteForm) {
+        const nomeCliente = newClienteData.nome.trim();
+        const telefoneCliente = newClienteData.telefone.trim();
+
+        if (!nomeCliente) {
+          alert("Informe o nome do cliente para cadastrar.");
+          return;
+        }
+
+        const clienteCriado = await addCliente({
+          nome: nomeCliente,
+          telefone: telefoneCliente,
+          name: nomeCliente,
+          tel: telefoneCliente,
+          cpf: "",
+          email: "",
+          endereco: "",
+          cep: "",
+        });
+
+        clienteId = String(clienteCriado.id);
+      }
+
+      if (!clienteId) {
+        alert("Selecione ou cadastre um cliente.");
+        return;
+      }
+
       await addOrdem({
-        id_cliente: Number(formData.clienteId),
-        id_empresa: 1, // empresa logada
+        id_cliente: Number(clienteId),
+        id_empresa: 1,
         observacao: `Cópia de chave - ${formData.observacao}`,
         status_ordem: "ABERTA",
         valor_total: 0,
@@ -70,6 +102,8 @@ export function CopiaChave() {
       observacao: "",
       status_ordem: "PENDENTE",
     });
+    setShowNewClienteForm(false);
+    setNewClienteData({ nome: "", telefone: "" });
     setShowForm(false);
   };
 
@@ -346,12 +380,21 @@ export function CopiaChave() {
             </p>
           </div>
           {!showForm && (
-            <button
-              onClick={() => setShowForm(true)}
-              className="p-2 bg-blue-700 hover:bg-blue-800 rounded-lg"
-            >
-              <Plus className="w-6 h-6" />
-            </button>
+            <>
+              <button
+                onClick={() => setShowModal(true)}
+                className="p-2 hover:bg-blue-700 rounded-lg"
+                title="Ver produtos, serviços e clientes"
+              >
+                <Eye className="w-6 h-6" />
+              </button>
+              <button
+                onClick={() => setShowForm(true)}
+                className="p-2 bg-blue-700 hover:bg-blue-800 rounded-lg"
+              >
+                <Plus className="w-6 h-6" />
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -370,15 +413,57 @@ export function CopiaChave() {
                     setFormData({ ...formData, clienteId: e.target.value })
                   }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
+                  required={!showNewClienteForm}
                 >
                   <option value="">Selecione um cliente</option>
-                  {clientes.map((cliente) => (
-                    <option key={cliente.id} value={cliente.id}>
-                      {cliente.name} - {cliente.tel}
-                    </option>
-                  ))}
+                  {clientes.map((cliente) => {
+                    const nome = cliente.nome || cliente.name || "Cliente";
+                    const contato = cliente.telefone || cliente.tel || "";
+
+                    return (
+                      <option key={cliente.id} value={cliente.id}>
+                        {nome}
+                        {contato ? ` - ${contato}` : ""}
+                      </option>
+                    );
+                  })}
                 </select>
+              </div>
+
+              <div className="rounded-lg border border-dashed border-blue-300 bg-blue-50 p-3">
+                <button
+                  type="button"
+                  onClick={() => setShowNewClienteForm((v) => !v)}
+                  className="text-sm font-medium text-blue-700"
+                >
+                  {showNewClienteForm
+                    ? "Cancelar cadastro de cliente"
+                    : "Adicionar cliente não cadastrado"}
+                </button>
+
+                {showNewClienteForm && (
+                  <div className="mt-3 space-y-3">
+                    <input
+                      type="text"
+                      value={newClienteData.nome}
+                      onChange={(e) =>
+                        setNewClienteData({ ...newClienteData, nome: e.target.value })
+                      }
+                      placeholder="Nome do cliente"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+
+                    <input
+                      type="text"
+                      value={newClienteData.telefone}
+                      onChange={(e) =>
+                        setNewClienteData({ ...newClienteData, telefone: e.target.value })
+                      }
+                      placeholder="Telefone / WhatsApp"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                )}
               </div>
 
               <div>
@@ -477,8 +562,8 @@ export function CopiaChave() {
               <button
                 onClick={() => setFilterStatus("all")}
                 className={`px-4 py-2 rounded-lg whitespace-nowrap ${filterStatus === "all"
-                    ? "bg-blue-600 text-white"
-                    : "bg-white text-gray-700 border"
+                  ? "bg-blue-600 text-white"
+                  : "bg-white text-gray-700 border"
                   }`}
               >
                 Todos
@@ -486,8 +571,8 @@ export function CopiaChave() {
               <button
                 onClick={() => setFilterStatus("PENDENTE")}
                 className={`px-4 py-2 rounded-lg whitespace-nowrap ${filterStatus === "PENDENTE"
-                    ? "bg-yellow-600 text-white"
-                    : "bg-white text-gray-700 border"
+                  ? "bg-yellow-600 text-white"
+                  : "bg-white text-gray-700 border"
                   }`}
               >
                 Pendente
@@ -495,8 +580,8 @@ export function CopiaChave() {
               <button
                 onClick={() => setFilterStatus("EM_ANDAMENTO")}
                 className={`px-4 py-2 rounded-lg whitespace-nowrap ${filterStatus === "EM_ANDAMENTO"
-                    ? "bg-blue-600 text-white"
-                    : "bg-white text-gray-700 border"
+                  ? "bg-blue-600 text-white"
+                  : "bg-white text-gray-700 border"
                   }`}
               >
                 Em Produção
@@ -504,8 +589,8 @@ export function CopiaChave() {
               <button
                 onClick={() => setFilterStatus("PRONTO")}
                 className={`px-4 py-2 rounded-lg whitespace-nowrap ${filterStatus === "PRONTO"
-                    ? "bg-green-600 text-white"
-                    : "bg-white text-gray-700 border"
+                  ? "bg-green-600 text-white"
+                  : "bg-white text-gray-700 border"
                   }`}
               >
                 Pronto
@@ -513,8 +598,8 @@ export function CopiaChave() {
               <button
                 onClick={() => setFilterStatus("ENTREGUE")}
                 className={`px-4 py-2 rounded-lg whitespace-nowrap ${filterStatus === "ENTREGUE"
-                    ? "bg-gray-600 text-white"
-                    : "bg-white text-gray-700 border"
+                  ? "bg-gray-600 text-white"
+                  : "bg-white text-gray-700 border"
                   }`}
               >
                 Retirado
@@ -697,6 +782,11 @@ export function CopiaChave() {
           </div>
         )}
       </div>
+
+      <ProdutosServicosModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+      />
 
       {/* WhatsApp Modal */}
       {selectedCliente && selectedProduto && (
